@@ -151,7 +151,7 @@ route("/", async () => {
           <a class="btn" data-nav href="/pelvic">${escapeHtml(get("navPelvic"))}</a>
         </div>
         <div class="small" style="margin-top:10px">
-          <span class="pill">v0.1</span> · PWA GitHub Pages · stockage local
+          <span class="pill">v0.5</span> · PWA GitHub Pages · stockage local
         </div>
       </div>
 
