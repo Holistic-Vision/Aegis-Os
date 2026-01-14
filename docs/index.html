@@ -48,5 +48,38 @@
   </script>
   <script type="module" src="./router.js"></script>
   <script type="module" src="./app.js"></script>
+<script>
+(function(){
+  function showBootError(msg, src, line, col){
+    var box = document.getElementById("boot-error-box");
+    var detail = document.getElementById("boot-error-detail");
+    if(detail){
+      detail.textContent = String(msg || "Boot error") + (src ? ("\n" + src + ":" + (line||0) + ":" + (col||0)) : "");
+    }
+    if(box) box.style.display = "block";
+  }
+
+  window.addEventListener("error", function(e){
+    showBootError(e && e.message, e && e.filename, e && e.lineno, e && e.colno);
+  });
+
+  window.addEventListener("unhandledrejection", function(e){
+    var r = e && e.reason;
+    showBootError((r && (r.message || r)) || "Unhandled promise rejection");
+  });
+
+  window.addEventListener("DOMContentLoaded", function(){
+    var r = document.getElementById("boot-reload");
+    if(r) r.addEventListener("click", function(){ location.reload(); });
+    var c = document.getElementById("boot-copy");
+    if(c) c.addEventListener("click", function(){
+      var t = (document.getElementById("boot-error-detail")||{}).textContent || "";
+      try{
+        navigator.clipboard.writeText(t);
+      }catch(e){}
+    });
+  });
+})();
+</script>
 </body>
 </html>

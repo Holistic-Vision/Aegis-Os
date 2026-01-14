@@ -1,4 +1,4 @@
-const VERSION = "0.7.1";
+const VERSION = "0.7.4";
 const CACHE = "aegis-v0_7_1";
 const ASSETS = [
   "version.json",
