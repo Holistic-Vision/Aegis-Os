@@ -29,13 +29,13 @@ function normalizeInitialPath(){
     const normalized = stripBase(raw) || "/";
     const n = normalized.replace(/\/+$/, "") || "/";
     if(n === "/" || n === ""){
-      history.replaceState({}, "", withBase("/home"));
-      return "/home";
+      history.replaceState({}, "", withBase("/"));
+      return "/";
     }
     return n;
   }catch(e){
-    try{ history.replaceState({}, "", withBase("/home")); }catch(_){}
-    return "/home";
+    try{ history.replaceState({}, "", withBase("/")); }catch(_){}
+    return "/";
   }
 }
 

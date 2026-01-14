@@ -1,4 +1,4 @@
-let APP_VERSION = "0.7.6";
+let APP_VERSION = "0.7.7";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -139,6 +139,80 @@ function bindTopbar(){
 }
 
 route("/", async () => {
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const last = db.checkins[db.checkins.length-1];
+
+  const html = layout(`
+    <div class="grid">
+      <div class="card">
+        <h2>${escapeHtml(get("today"))} · ${escapeHtml(fmtDate(new Date()))}</h2>
+        <div class="row">
+          <div class="kpi"><div class="small">${escapeHtml(get("mood"))}</div><b>${escapeHtml(last?.mood ?? "—")}</b></div>
+          <div class="kpi"><div class="small">${escapeHtml(get("energy"))}</div><b>${escapeHtml(last?.energy ?? "—")}</b></div>
+          <div class="kpi"><div class="small">${escapeHtml(get("sleep"))}</div><b>${escapeHtml(last?.sleep ?? "—")}</b></div>
+          <div class="kpi"><div class="small">${escapeHtml(get("stress"))}</div><b>${escapeHtml(last?.stress ?? "—")}</b></div>
+        </div>
+        <hr />
+        <div class="row">
+          <a class="btn primary" data-nav href="/mind">${escapeHtml(get("quickCheckin"))}</a>
+          <a class="btn" data-nav href="/insights">${escapeHtml(get("navInsights"))}</a>
+          <a class="btn" data-nav href="/library">${escapeHtml(get("navLibrary"))}</a>
+          <a class="btn" data-nav href="/armor">${escapeHtml(get("navArmor"))}</a>
+          <a class="btn" data-nav href="/holistic">${escapeHtml(get("navHolistic"))}</a>
+          <a class="btn" data-nav href="/pelvic">${escapeHtml(get("navPelvic"))}</a>
+        </div>
+        <div class="small" style="margin-top:10px">
+          <span class="pill">v${APP_VERSION}</span> · PWA GitHub Pages · stockage local
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Phrase du jour</h2>
+        <p class="small" id="quote"></p>
+        <div class="row">
+          <button class="btn" id="newQuote">Nouvelle</button>
+          <a class="btn ghost" data-nav href="/library#quotes">Bibliothèque</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>${escapeHtml(get("reminders"))}</h2>
+        <div class="small">Notifications navigateur (limitées sur certains mobiles). Pour un SaaS public, prévoir un backend push.</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="notifBtn">${escapeHtml(get("enableNotif"))}</button>
+          <a class="btn ghost" data-nav href="/account">Compte</a> <a class="btn ghost" data-nav href="/settings#reminders">Gérer</a>
+        </div>
+      </div>
+
+      <div class="card footerlinks">
+        <a data-nav href="/legal/privacy">Confidentialité</a>
+        <a data-nav href="/legal/terms">Conditions</a>
+        <a data-nav href="/account">Compte</a>
+        <a data-nav href="/support">${escapeHtml(get("navSupport"))}</a>
+      </div>
+    </div>
+  `);
+
+  qs("#root").innerHTML = html;
+  bindTopbar();
+
+  // quotes
+  const quotes = await fetch("./modules/quotes.json").then(r=>r.json()).catch(()=>[]);
+  const q = quotes[Math.floor(Math.random()*Math.max(1,quotes.length))] || {text:"Respire. Observe. Ajuste.", source:"AEGIS"};
+  qs("#quote").textContent = `${q.text} — ${q.source}`;
+  qs("#newQuote").addEventListener("click", () => location.reload());
+
+  qs("#notifBtn").addEventListener("click", async () => {
+    if(!("Notification" in window)) return alert("Notifications non supportées.");
+    const p = await Notification.requestPermission();
+    if(p === "granted"){
+      new Notification("AEGIS", {body:"Notifications activées."});
+    }
+  });
+});
+
+route("/home", async () => {
   if(!(await ensureConsent())) return;
   const db = loadDB();
   const last = db.checkins[db.checkins.length-1];
