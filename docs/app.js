@@ -1,25 +1,7 @@
+let APP_VERSION = "0.7.5";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
-
-let APP_VERSION = "0.7.4";
-
-
-function showFatal(err){
-  try{
-    const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
-    if(typeof window.__AEGIS_SHOW_BOOT_ERROR__ === "function"){
-      window.__AEGIS_SHOW_BOOT_ERROR__("AEGIS - démarrage impossible", msg);
-      return;
-    }
-    const root = document.getElementById("root");
-    if(root){
-      root.innerHTML = '<div class="grid"><div class="card"><h2>AEGIS</h2><div class="badge warn" style="margin-top:6px">Boot error</div><pre class="small" style="white-space:pre-wrap;margin-top:10px"></pre></div></div>';
-      const pre = root.querySelector("pre");
-      if(pre) pre.textContent = msg;
-    }
-  }catch(e){}
-}
 
 const i18nCache = new Map();
 
@@ -92,14 +74,15 @@ function get(key){ return window.__i18n?.[key] || key; }
 
 
 async function loadVersion(){
-  try {
+  try{
     const r = await fetch("version.json", {cache:"no-store"});
     if(r.ok){
       const j = await r.json();
       if(j && j.version) APP_VERSION = j.version;
     }
-  } catch(e) {}
+  }catch(e){}
 }
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -141,16 +124,6 @@ async function ensureConsent(){
   });
   return false;
 }
-
-async function ensureOnboarding(){
-  const db = loadDB();
-  const done = db?.profile?.onboarding?.completedAt;
-  if(done) return true;
-  navigate("/onboarding");
-  return false;
-}
-
-
 
 function bindTopbar(){
   const db = loadDB();
@@ -239,9 +212,8 @@ route("/", async () => {
   });
 });
 
-route\("/mind", async \(\) => \{
-  if\(!\(await ensureConsent\(\)\)\) return;
-  if(!(await ensureOnboarding())) return;
+route("/mind", async () => {
+  if(!(await ensureConsent())) return;
   const db = loadDB();
   const html = layout(`
     <div class="grid">
@@ -274,7 +246,7 @@ route\("/mind", async \(\) => \{
           </div>
           <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
             <label class="small">${escapeHtml(get("notes"))}</label>
-            <textarea id="notes" class="input" placeholder="Déclencheurs, pensées, douleurs, victoires..."></textarea>
+            <textarea id="notes" class="input" placeholder="Déclencheurs, pensées, douleurs, victoires…"></textarea>
           </div>
         </div>
         <div class="row" style="margin-top:10px">
@@ -286,7 +258,7 @@ route\("/mind", async \(\) => \{
       
       <div class="card">
         <h2>${escapeHtml(get("snapshot"))}</h2>
-        <div class="small">Ces infos aident à adapter les routines en mode "sécurité". Elles sont enregistrées avec le check-in du jour.</div>
+        <div class="small">Ces infos aident à adapter les routines en mode “sécurité”. Elles sont enregistrées avec le check-in du jour.</div>
         <hr />
         <div class="grid">
           <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
@@ -347,7 +319,7 @@ route\("/mind", async \(\) => \{
           <a class="btn" data-nav href="/modules/meditation">Méditation</a>
           <a class="btn" data-nav href="/modules/values">Boussole (valeurs)</a>
         </div>
-        <p class="small" style="margin-top:10px">Modules "Mind" inspirés : journal, observation, auto-régulation. Aucun conseil médical.</p>
+        <p class="small" style="margin-top:10px">Modules “Mind” inspirés : journal, observation, auto-régulation. Aucun conseil médical.</p>
       </div>
     </div>
   `);
@@ -382,7 +354,7 @@ route("/journal", async () => {
   const rows = [...db.journal].reverse().slice(0,30).map(j => `
     <tr>
       <td>${escapeHtml(new Date(j.ts).toLocaleString())}</td>
-      <td><b>${escapeHtml(j.title||"—")}</b><div class="small">${escapeHtml((j.body||"").slice(0,140))}${(j.body||"").length>140?"...":""}</div></td>
+      <td><b>${escapeHtml(j.title||"—")}</b><div class="small">${escapeHtml((j.body||"").slice(0,140))}${(j.body||"").length>140?"…":""}</div></td>
       <td class="small">${escapeHtml((j.tags||[]).join(", "))}</td>
     </tr>
   `).join("");
@@ -394,7 +366,7 @@ route("/journal", async () => {
         <div class="small">Écris pour clarifier. Exportable. Local par défaut.</div>
         <hr />
         <label class="small">Titre</label>
-        <input class="input" id="jTitle" placeholder="Ex: Aujourd'hui, j'ai compris que..." />
+        <input class="input" id="jTitle" placeholder="Ex: Aujourd’hui, j’ai compris que…" />
         <div style="height:8px"></div>
         <label class="small">Texte</label>
         <textarea class="input" id="jBody" placeholder="Décrire. Nommer. Observer. Ajuster."></textarea>
@@ -443,13 +415,13 @@ route("/chat", async () => {
         <hr />
         <div id="chatLog" class="small" style="white-space:pre-wrap"></div>
         <div style="height:10px"></div>
-        <textarea id="chatInput" class="input" placeholder="Demande: plan du jour, méditation, routine, explications..."></textarea>
+        <textarea id="chatInput" class="input" placeholder="Demande: plan du jour, méditation, routine, explications…"></textarea>
         <div class="row" style="margin-top:10px">
           <button class="btn primary" id="send">Envoyer</button>
           <a class="btn ghost" data-nav href="/library">Sources</a>
         </div>
         <p class="small" style="margin-top:10px">
-          Garde-fous: pas de diagnostic, pas de prescription, pas de conseils médicaux. L'assistant peut proposer des routines générales et des ressources.
+          Garde-fous: pas de diagnostic, pas de prescription, pas de conseils médicaux. L’assistant peut proposer des routines générales et des ressources.
         </p>
       </div>
     </div>
@@ -485,7 +457,7 @@ route("/chat", async () => {
       append("aegis", text);
     }catch(e){
       if(String(e.message).includes("NO_API_KEY")){
-        append("aegis", "Clé IA manquante. Clique sur "Définir ma clé IA".");
+        append("aegis", "Clé IA manquante. Clique sur “Définir ma clé IA”.");
       }else{
         append("aegis", "Erreur IA: " + e.message);
       }
@@ -493,9 +465,8 @@ route("/chat", async () => {
   });
 });
 
-route\("/library", async \(\) => \{
-  if\(!\(await ensureConsent\(\)\)\) return;
-  if(!(await ensureOnboarding())) return;
+route("/library", async () => {
+  if(!(await ensureConsent())) return;
   const lib = await fetch("./modules/library.json").then(r=>r.json()).catch(()=>({sections:[]}));
   const sections = (lib.sections||[]).map(s => `
     <div class="card">
@@ -512,7 +483,7 @@ route\("/library", async \(\) => \{
     <div class="grid">
       <div class="card">
         <h2>Bibliothèque & sources</h2>
-        <div class="small">Liens officiels, articles, ressources (à compléter). Cette page sert aussi de "transparence".</div>
+        <div class="small">Liens officiels, articles, ressources (à compléter). Cette page sert aussi de “transparence”.</div>
       </div>
       ${sections}
     </div>
@@ -545,7 +516,7 @@ async function moduleHub(title, key){
         <h2>${escapeHtml(title)}</h2>
         <div class="small">Hub de modules. Tout est modulaire, évolutif.</div>
       </div>
-      ${cards || `<div class="card"><div class="small">Aucun module pour l'instant.</div></div>`}
+      ${cards || `<div class="card"><div class="small">Aucun module pour l’instant.</div></div>`}
     </div>
   `);
   qs("#root").innerHTML = html;
@@ -725,7 +696,7 @@ route("/settings", async () => {
             <input class="input" id="rTime" placeholder="08:30" />
           </div>
           <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">Jours (0=dimanche...6=samedi)</label>
+            <label class="small">Jours (0=dimanche…6=samedi)</label>
             <input class="input" id="rDays" placeholder="1,2,3,4,5" />
           </div>
         </div>
@@ -874,7 +845,7 @@ route("/insights", async () => {
 
       <div class="card">
         <h2>Note</h2>
-        <div class="small">Si "cardiaque", "enceinte" ou "repos difficile" est activé, AEGIS doit proposer par défaut des routines plus douces et rappeler de demander un avis professionnel en cas de doute.</div>
+        <div class="small">Si “cardiaque”, “enceinte” ou “repos difficile” est activé, AEGIS doit proposer par défaut des routines plus douces et rappeler de demander un avis professionnel en cas de doute.</div>
       </div>
     </div>
   `);
@@ -1000,107 +971,6 @@ route("/armor/hiit", async () => {
   bindTopbar();
 });
 
-
-route("/onboarding", async () => {
-  if(!(await ensureConsent())) return;
-  const db = loadDB();
-  db.profile.onboarding = db.profile.onboarding || {completedAt:null, goals:[], constraints:{injuries:"", allergies:"", equipment:"none", schedule:""}};
-  const ob = db.profile.onboarding;
-
-  const goalSet = new Set(ob.goals || []);
-  const html = layout(`
-    <div class="grid">
-      <div class="card">
-        <h2>${escapeHtml(get("onboardingTitle"))}</h2>
-        <div class="small">${escapeHtml(get("onboardingIntro"))}</div>
-      </div>
-
-      <div class="card">
-        <h2>${escapeHtml(get("goals"))}</h2>
-        <div class="row" style="flex-wrap:wrap">
-          <button class="btn ghost" data-goal="fatloss">${escapeHtml(get("goal_fatloss"))}</button>
-          <button class="btn ghost" data-goal="strength">${escapeHtml(get("goal_strength"))}</button>
-          <button class="btn ghost" data-goal="mobility">${escapeHtml(get("goal_mobility"))}</button>
-          <button class="btn ghost" data-goal="sleep">${escapeHtml(get("goal_sleep"))}</button>
-        </div>
-        <div class="small" style="margin-top:8px">Sélection: <span id="goalList">—</span></div>
-      </div>
-
-      <div class="card">
-        <h2>${escapeHtml(get("constraints"))}</h2>
-        <label class="small">${escapeHtml(get("injuries"))}</label>
-        <input class="input" id="injuries" placeholder="" />
-        <div style="height:10px"></div>
-        <label class="small">${escapeHtml(get("allergies"))}</label>
-        <input class="input" id="allergies" placeholder="" />
-        <div style="height:10px"></div>
-        <label class="small">${escapeHtml(get("equipment"))}</label>
-        <select class="input" id="equipment">
-          <option value="none">${escapeHtml(get("equip_none"))}</option>
-          <option value="basic">${escapeHtml(get("equip_basic"))}</option>
-          <option value="gym">${escapeHtml(get("equip_gym"))}</option>
-        </select>
-        <div style="height:10px"></div>
-        <label class="small">${escapeHtml(get("schedule"))}</label>
-        <input class="input" id="schedule" placeholder="" />
-      </div>
-
-      <div class="card">
-        <button class="btn primary" id="saveOnb">${escapeHtml(get("saveContinue"))}</button>
-        <a class="btn ghost" data-nav href="/home">← Home</a>
-      </div>
-    </div>
-  `);
-
-  qs("#root").innerHTML = html;
-  bindTopbar();
-
-  qs("#injuries").value = ob.constraints?.injuries || "";
-  qs("#allergies").value = ob.constraints?.allergies || "";
-  qs("#equipment").value = ob.constraints?.equipment || "none";
-  qs("#schedule").value = ob.constraints?.schedule || "";
-
-  function refreshGoals(){
-    const arr = [...goalSet];
-    qs("#goalList").textContent = arr.length ? arr.join(", ") : "—";
-    document.querySelectorAll("[data-goal]").forEach(b=>{
-      const g = b.getAttribute("data-goal");
-      if(goalSet.has(g)){
-        b.classList.add("primary");
-        b.classList.remove("ghost");
-      }else{
-        b.classList.add("ghost");
-        b.classList.remove("primary");
-      }
-    });
-  }
-  refreshGoals();
-
-  document.querySelectorAll("[data-goal]").forEach(b=>{
-    b.addEventListener("click", ()=>{
-      const g = b.getAttribute("data-goal");
-      if(goalSet.has(g)) goalSet.delete(g); else goalSet.add(g);
-      refreshGoals();
-    });
-  });
-
-  qs("#saveOnb").addEventListener("click", ()=>{
-    const db2 = loadDB();
-    db2.profile.onboarding = db2.profile.onboarding || {completedAt:null, goals:[], constraints:{}};
-    db2.profile.onboarding.goals = [...goalSet];
-    db2.profile.onboarding.constraints = {
-      injuries: qs("#injuries").value,
-      allergies: qs("#allergies").value,
-      equipment: qs("#equipment").value,
-      schedule: qs("#schedule").value
-    };
-    db2.profile.onboarding.completedAt = new Date().toISOString();
-    saveDB(db2);
-    alert(get("onboardingDone"));
-    navigate("/home");
-  });
-});
-
 route("/support", async () => {
   if(!(await ensureConsent())) return;
   const html = layout(`
@@ -1114,7 +984,7 @@ route("/support", async () => {
           <a class="btn" href="#" target="_blank" rel="noopener">PayPal (option)</a>
         </div>
         <p class="small" style="margin-top:10px">
-          GitHub Pages est statique. Les abonnements et comptes se font via un fournisseur externe (Stripe) et/ou un backend serverless (Cloudflare/Netlify/Supabase).<br/><br/><b>Parrainage:</b> en mode simple, tu actives "allow promotion codes" sur un Payment Link et le filleul saisit un code promo lors du paiement. En mode pro, un backend crée la Checkout Session et applique automatiquement une réduction + metadata de parrainage.
+          GitHub Pages est statique. Les abonnements et comptes se font via un fournisseur externe (Stripe) et/ou un backend serverless (Cloudflare/Netlify/Supabase).<br/><br/><b>Parrainage:</b> en mode simple, tu actives “allow promotion codes” sur un Payment Link et le filleul saisit un code promo lors du paiement. En mode pro, un backend crée la Checkout Session et applique automatiquement une réduction + metadata de parrainage.
         </p>
       </div>
     </div>
@@ -1169,7 +1039,6 @@ function markdownToHtml(md){
 }
 
 async function boot(){
-  await loadVersion();
   await loadI18n();
   const db = loadDB();
   setTheme(db.profile?.theme || "dark");
@@ -1198,4 +1067,4 @@ async function boot(){
   await render();
 }
 
-boot().catch(showFatal);
+boot();

@@ -1,10 +1,8 @@
-export const routes = new Map();
 const BASE_PATH = (() => {
   try{
     const host = location.hostname || "";
     const p = (location.pathname || "/");
     const seg = p.split("/").filter(Boolean)[0] || "";
-    // GitHub Pages project: https://<org>.github.io/<repo>/
     if(host.endsWith("github.io") && seg) return "/" + seg;
   }catch(e){}
   return "";
@@ -24,6 +22,7 @@ function stripBase(pathname){
   if(pathname.startsWith(BASE_PATH + "/")) return pathname.slice(BASE_PATH.length) || "/";
   return pathname;
 }
+export const routes = new Map();
 
 export function route(path, handler){
   routes.set(path, handler);

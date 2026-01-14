@@ -14,72 +14,71 @@
       <div class="card">
         <h2>AEGIS</h2>
         <div class="small">Chargement…</div>
-        <div class="small" style="margin-top:8px">Si l’écran reste vide, un diagnostic s’affichera automatiquement.</div>
+      </div>
+
+      <div class="card" id="boot-error-box" style="display:none">
+        <h2 id="boot-error-title">Erreur JavaScript</h2>
+        <div class="pill" style="display:inline-block;margin:8px 0">Boot error</div>
+        <div class="small" id="boot-error-msg" style="margin-bottom:10px">—</div>
+        <pre id="boot-error-detail" class="small" style="white-space:pre-wrap;word-break:break-word;opacity:.9"></pre>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="boot-reload">Recharger</button>
+          <button class="btn ghost" id="boot-debug">Debug</button>
+          <button class="btn ghost" id="boot-copy">Copier</button>
+        </div>
+        <div class="small" style="margin-top:10px;opacity:.8">Astuce : ouvre aussi <code>./version.json</code> pour vérifier la version servie.</div>
       </div>
     </div>
   </div>
+
   <script>
   (function(){
-    var root = document.getElementById("root");
-    function esc(s){ return String(s||"").replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); }
-    function show(title, msg){
-      if(!root) return;
-      root.innerHTML =
-        '<div class="grid"><div class="card">'+
-        '<h2>'+esc(title)+'</h2>'+
-        '<div class="badge warn" style="margin-top:6px">Boot error</div>'+
-        '<div class="small" style="margin-top:10px">'+esc(msg)+'</div>'+
-        '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">'+
-        '<a class="btn primary" href="./?v=0.7.3">Recharger</a>'+
-        '<a class="btn ghost" href="./?v=0.7.3&debug=1">Debug</a>'+
-        '</div>'+
-        '<div class="small" style="margin-top:10px">Astuce : ouvre aussi <code>./version.json</code> pour vérifier la version servie.</div>'+
-        '</div></div>';
+    function showBootError(title, msg, detail){
+      var box = document.getElementById("boot-error-box");
+      var t = document.getElementById("boot-error-title");
+      var m = document.getElementById("boot-error-msg");
+      var d = document.getElementById("boot-error-detail");
+      if(t) t.textContent = title || "Erreur JavaScript";
+      if(m) m.textContent = msg || "Erreur inconnue";
+      if(d) d.textContent = detail || "";
+      if(box) box.style.display = "block";
     }
-    window.__AEGIS_SHOW_BOOT_ERROR__ = show;
+    window.__AEGIS_showBootError = showBootError;
+
     window.addEventListener("error", function(e){
-      show("Erreur JavaScript", (e && e.message) ? e.message : "Erreur inconnue");
+      try{
+        var src = (e && e.filename) ? e.filename : "";
+        var loc = (e && (e.lineno || e.colno)) ? ("\n" + src + ":" + (e.lineno||0) + ":" + (e.colno||0)) : "";
+        showBootError("Erreur JavaScript", (e && e.message) ? e.message : "Erreur inconnue", loc);
+      }catch(_){}
     });
     window.addEventListener("unhandledrejection", function(e){
-      var r = e && e.reason;
-      show("Erreur Promise", (r && r.message) ? r.message : String(r));
+      try{
+        var r = e && e.reason;
+        showBootError("Erreur Promise", (r && r.message) ? r.message : String(r), "");
+      }catch(_){}
+    });
+    document.addEventListener("DOMContentLoaded", function(){
+      var r = document.getElementById("boot-reload");
+      if(r) r.addEventListener("click", function(){ location.reload(); });
+      var b = document.getElementById("boot-debug");
+      if(b) b.addEventListener("click", function(){
+        var det = document.getElementById("boot-error-detail");
+        if(det) det.style.display = (det.style.display === "none") ? "block" : "block";
+      });
+      var c = document.getElementById("boot-copy");
+      if(c) c.addEventListener("click", function(){
+        var t = (document.getElementById("boot-error-detail")||{}).textContent || "";
+        if(!t) t = (document.getElementById("boot-error-msg")||{}).textContent || "";
+        try{ navigator.clipboard.writeText(t); }catch(e){}
+      });
     });
   })();
   </script>
+
   <script type="module" src="./router.js"></script>
+  <script type="module" src="./db.js"></script>
+  <script type="module" src="./ai.js"></script>
   <script type="module" src="./app.js"></script>
-<script>
-(function(){
-  function showBootError(msg, src, line, col){
-    var box = document.getElementById("boot-error-box");
-    var detail = document.getElementById("boot-error-detail");
-    if(detail){
-      detail.textContent = String(msg || "Boot error") + (src ? ("\n" + src + ":" + (line||0) + ":" + (col||0)) : "");
-    }
-    if(box) box.style.display = "block";
-  }
-
-  window.addEventListener("error", function(e){
-    showBootError(e && e.message, e && e.filename, e && e.lineno, e && e.colno);
-  });
-
-  window.addEventListener("unhandledrejection", function(e){
-    var r = e && e.reason;
-    showBootError((r && (r.message || r)) || "Unhandled promise rejection");
-  });
-
-  window.addEventListener("DOMContentLoaded", function(){
-    var r = document.getElementById("boot-reload");
-    if(r) r.addEventListener("click", function(){ location.reload(); });
-    var c = document.getElementById("boot-copy");
-    if(c) c.addEventListener("click", function(){
-      var t = (document.getElementById("boot-error-detail")||{}).textContent || "";
-      try{
-        navigator.clipboard.writeText(t);
-      }catch(e){}
-    });
-  });
-})();
-</script>
 </body>
 </html>
