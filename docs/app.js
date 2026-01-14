@@ -1,4 +1,4 @@
-let APP_VERSION = "0.7.8";
+let APP_VERSION = "0.8.0";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -1088,6 +1088,289 @@ route("/modules/breath", async () => simpleMarkdownPage("modules/breath.md"));
 route("/modules/meditation", async () => simpleMarkdownPage("modules/meditation.md"));
 route("/modules/values", async () => simpleMarkdownPage("modules/values.md"));
 
+
+// Data Hub (recipes/workouts/groceries)
+route("/data/recipes", async () => renderRecipes());
+route("/data/workouts", async () => renderWorkouts());
+route("/data/groceries", async () => renderGroceries());
+
+
+async function renderRecipes(){
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const profile = db.profile || {};
+  const prefs = (profile.prefs||{});
+  const allergies = new Set((prefs.allergies||[]).map(x=>String(x).toLowerCase()));
+  const intolerances = new Set((prefs.intolerances||[]).map(x=>String(x).toLowerCase()));
+  const diet = String(prefs.diet||"omnivore");
+  const avoid = new Set((prefs.avoidFoods||[]).map(x=>String(x).toLowerCase()));
+
+  const data = await fetch("./data/recipes.json").then(r=>r.json()).catch(()=>({items:[]}));
+  const items = (data.items||[]).filter(it=>{
+    // diet match
+    if(it.diets && Array.isArray(it.diets) && it.diets.length){
+      if(!it.diets.includes("any") && !it.diets.includes(diet)) return false;
+    }
+    // avoid/allergen exclusion
+    const a = new Set(((it.allergens||[]).map(x=>String(x).toLowerCase())));
+    const i = new Set(((it.intolerances||[]).map(x=>String(x).toLowerCase())));
+    for(const x of allergies){ if(a.has(x)) return false; }
+    for(const x of intolerances){ if(i.has(x)) return false; }
+    const tags = (it.tags||[]).map(x=>String(x).toLowerCase());
+    for(const x of avoid){ if(tags.includes(x)) return false; }
+    return true;
+  });
+
+  const chips = `
+    <div class="row" style="gap:8px; flex-wrap:wrap">
+      <span class="pill">Diet: ${escapeHtml(diet)}</span>
+      ${(prefs.allergies||[]).length?`<span class="pill">Allergies: ${escapeHtml((prefs.allergies||[]).join(", "))}</span>`:""}
+      ${(prefs.intolerances||[]).length?`<span class="pill">Intolérances: ${escapeHtml((prefs.intolerances||[]).join(", "))}</span>`:""}
+      ${(prefs.avoidFoods||[]).length?`<span class="pill">Éviter: ${escapeHtml((prefs.avoidFoods||[]).join(", "))}</span>`:""}
+    </div>
+  `;
+
+  const cards = items.map(it=>{
+    const ing = (it.ingredients||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("");
+    const steps = (it.steps||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("");
+    const meta = [
+      it.timeMin?`${it.timeMin} min`:"", it.kcal?`${it.kcal} kcal`:"", (it.proteinG!=null)?`${it.proteinG}g prot`:""
+    ].filter(Boolean).join(" • ");
+    return `
+      <div class="card">
+        <div class="row" style="justify-content:space-between; gap:10px">
+          <div>
+            <h3 style="margin:0">${escapeHtml(it.title||"Recette")}</h3>
+            <div class="small">${escapeHtml(meta)}</div>
+          </div>
+          <button class="btn" data-add-recipe="${escapeHtml(it.id||"")}">Ajouter au journal</button>
+        </div>
+        ${it.note?`<p class="small">${escapeHtml(it.note)}</p>`:""}
+        <div class="grid">
+          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:1px solid rgba(255,255,255,.08)">
+            <div class="small"><b>Ingrédients</b></div>
+            <ul class="small">${ing}</ul>
+          </div>
+          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:1px solid rgba(255,255,255,.08)">
+            <div class="small"><b>Étapes</b></div>
+            <ol class="small">${steps}</ol>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  qs("#root").innerHTML = layout(`
+    <div class="card">
+      <h2>Recettes</h2>
+      <p class="small">Filtrées automatiquement selon ton profil (régime, allergies, intolérances, aliments à éviter).</p>
+      ${chips}
+      <div class="hr"></div>
+      <div class="row" style="gap:10px; flex-wrap:wrap">
+        <a class="btn" href="/settings">Modifier le profil</a>
+        <a class="btn" href="/library">Bibliothèque</a>
+      </div>
+    </div>
+    ${cards || `<div class="card"><p class="small">Aucune recette ne correspond à tes filtres.</p></div>`}
+  `);
+  bindTopbar();
+
+  // add-to-journal
+  document.querySelectorAll("[data-add-recipe]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-add-recipe");
+      const it = (data.items||[]).find(x=>String(x.id)===String(id));
+      if(!it) return;
+      addJournal({ts: Date.now(), title: `Recette: ${it.title}`, body: (it.ingredients||[]).join("\n"), tags:["recette", diet]});
+      toast("Ajouté au journal.");
+    });
+  });
+}
+
+async function renderWorkouts(){
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const health = (db.profile && db.profile.health) ? db.profile.health : {};
+  const flags = {
+    pregnant: !!health.pregnant,
+    cardiac: !!health.cardiacIssues,
+    rest: !!health.restIssues
+  };
+
+  const data = await fetch("./data/workouts.json").then(r=>r.json()).catch(()=>({items:[]}));
+  const items = (data.items||[]).filter(it=>{
+    if(it.level === "hiit" && (flags.pregnant || flags.cardiac)) return false;
+    return true;
+  });
+
+  const cards = items.map(it=>{
+    const ex = (it.exercises||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("");
+    const meta = [
+      it.durationMin?`${it.durationMin} min`:"", it.level?it.level.toUpperCase():""
+    ].filter(Boolean).join(" • ");
+    return `
+      <div class="card">
+        <div class="row" style="justify-content:space-between; gap:10px">
+          <div>
+            <h3 style="margin:0">${escapeHtml(it.title||"Séance")}</h3>
+            <div class="small">${escapeHtml(meta)}</div>
+          </div>
+          <button class="btn" data-add-workout="${escapeHtml(it.id||"")}">Log séance</button>
+        </div>
+        ${it.note?`<p class="small">${escapeHtml(it.note)}</p>`:""}
+        <div class="small"><b>Exercices</b></div>
+        <ol class="small">${ex}</ol>
+      </div>
+    `;
+  }).join("");
+
+  qs("#root").innerHTML = layout(`
+    <div class="card">
+      <h2>Séances</h2>
+      <p class="small">Les séances sont filtrées selon tes indicateurs “sécurité” (grossesse, cardiaque...).</p>
+      <div class="row" style="gap:10px; flex-wrap:wrap">
+        <a class="btn" href="/settings">Modifier le profil</a>
+        <a class="btn" href="/armor">Armor (Fitness)</a>
+      </div>
+    </div>
+    ${cards || `<div class="card"><p class="small">Aucune séance disponible.</p></div>`}
+  `);
+  bindTopbar();
+
+  document.querySelectorAll("[data-add-workout]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-add-workout");
+      const it = (data.items||[]).find(x=>String(x.id)===String(id));
+      if(!it) return;
+      addTraining({ts: Date.now(), planId: id, done: true, notes: it.title});
+      toast("Séance enregistrée.");
+    });
+  });
+}
+
+async function renderGroceries(){
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const prefs = (db.profile && db.profile.prefs) ? db.profile.prefs : {};
+  const loc = prefs.location || {mode:"none", zip:"", city:""};
+  const data = await fetch("./data/groceries.json").then(r=>r.json()).catch(()=>({stores:[], items:[]}));
+
+  qs("#root").innerHTML = layout(`
+    <div class="card">
+      <h2>Liste de courses</h2>
+      <p class="small">
+        MVP (sans backend) : comparaison par <b>prix saisis</b> (ou import ticket plus tard).
+        Le “temps réel” nécessite des APIs magasins / partenaires ou un backend.
+      </p>
+      <div class="row" style="gap:10px; flex-wrap:wrap">
+        <a class="btn" href="/settings">Profil & localisation</a>
+        <button class="btn" id="btnBasketReset">Reset panier</button>
+      </div>
+      <div class="hr"></div>
+      <div class="small">
+        Localisation : <b>${escapeHtml(loc.mode||"none")}</b>
+        ${loc.zip?` • ${escapeHtml(loc.zip)} ${escapeHtml(loc.city||"")}`:""}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Panier (comparatif)</h3>
+      <p class="small">Ajoute des articles et renseigne les prix par magasin pour obtenir un total comparé.</p>
+      <div id="basket"></div>
+    </div>
+  `);
+  bindTopbar();
+
+  // simple local basket
+  if(!db.basket){ db.basket = {items:[], stores:(data.stores||[]) }; saveDB(db); }
+  const basket = db.basket;
+
+  const renderBasket = ()=>{
+    const stores = basket.stores || [];
+    const items = basket.items || [];
+    const header = `
+      <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:8px">
+        <button class="btn" id="btnAddItem">Ajouter article</button>
+        <button class="btn" id="btnAddStore">Ajouter magasin</button>
+      </div>
+    `;
+    const tableRows = items.map((it, idx)=>{
+      const priceInputs = stores.map((s, si)=>{
+        const val = (it.prices && it.prices[s.id]!=null) ? it.prices[s.id] : "";
+        return `<input class="input" data-price="${idx}:${s.id}" placeholder="${escapeHtml(s.name)}" value="${escapeHtml(val)}" style="width:110px">`;
+      }).join("");
+      return `
+        <div class="card" style="background:transparent; border:1px solid rgba(255,255,255,.08)">
+          <div class="row" style="justify-content:space-between; gap:10px">
+            <div><b>${escapeHtml(it.label)}</b> <span class="small">x${escapeHtml(String(it.qty||1))}</span></div>
+            <button class="btn" data-del-item="${idx}">Suppr</button>
+          </div>
+          <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:8px">${priceInputs}</div>
+        </div>
+      `;
+    }).join("");
+
+    const totals = stores.map(s=>{
+      let sum=0;
+      for(const it of items){
+        const p = it.prices ? Number(it.prices[s.id]) : NaN;
+        if(!isNaN(p)) sum += p * Number(it.qty||1);
+      }
+      return {name:s.name, total:sum};
+    });
+    const best = totals.length? totals.reduce((a,b)=> a.total<=b.total?a:b ) : null;
+
+    const totalsUI = totals.map(t=>`<span class="pill">${escapeHtml(t.name)}: ${isFinite(t.total)?t.total.toFixed(2):"—"}€</span>`).join(" ");
+    const bestUI = best? `<div class="small" style="margin-top:10px">Meilleur total: <b>${escapeHtml(best.name)}</b></div>` : "";
+
+    qs("#basket").innerHTML = header + (tableRows || `<p class="small">Panier vide.</p>`) + `<div class="hr"></div><div class="row" style="gap:8px; flex-wrap:wrap">${totalsUI}</div>${bestUI}`;
+
+    // bind
+    qs("#btnAddItem")?.addEventListener("click", ()=>{
+      const label = prompt("Article (ex: Poulet 1kg) :");
+      if(!label) return;
+      const qty = Number(prompt("Quantité :", "1")||"1");
+      basket.items.push({label, qty:isNaN(qty)?1:qty, prices:{}});
+      saveDB(db); renderBasket();
+    });
+    qs("#btnAddStore")?.addEventListener("click", ()=>{
+      const name = prompt("Nom du magasin :", "Carrefour");
+      if(!name) return;
+      const id = "s_" + Math.random().toString(36).slice(2,9);
+      basket.stores.push({id, name});
+      saveDB(db); renderBasket();
+    });
+    document.querySelectorAll("[data-del-item]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const i = Number(b.getAttribute("data-del-item"));
+        basket.items.splice(i,1);
+        saveDB(db); renderBasket();
+      });
+    });
+    document.querySelectorAll("[data-price]").forEach(inp=>{
+      inp.addEventListener("change", ()=>{
+        const [idx, sid] = inp.getAttribute("data-price").split(":");
+        const i = Number(idx);
+        const v = String(inp.value).replace(",", ".");
+        const num = v==="" ? null : Number(v);
+        if(!basket.items[i].prices) basket.items[i].prices = {};
+        if(num===null || isNaN(num)) delete basket.items[i].prices[sid];
+        else basket.items[i].prices[sid]=num;
+        saveDB(db); renderBasket();
+      });
+    });
+  };
+
+  qs("#btnBasketReset")?.addEventListener("click", ()=>{
+    if(confirm("Réinitialiser le panier (local) ?")){
+      basket.items=[]; saveDB(db); renderBasket();
+    }
+  });
+
+  renderBasket();
+}
+
+
 route("/404", async () => {
   qs("#root").innerHTML = layout(`<div class="card"><h2>404</h2><p class="small">Page introuvable.</p></div>`);
   bindTopbar();
@@ -1148,3 +1431,23 @@ async function boot(){
 }
 
 boot();
+  // prefs values
+  const dietEl = qs("#sDiet"); if(dietEl) dietEl.value = prefs.diet || "omnivore";
+  const alEl = qs("#sAllergies"); if(alEl) alEl.value = (prefs.allergies||[]).join(", ");
+  const inEl = qs("#sIntolerances"); if(inEl) inEl.value = (prefs.intolerances||[]).join(", ");
+  const avEl = qs("#sAvoidFoods"); if(avEl) avEl.value = (prefs.avoidFoods||[]).join(", ");
+  const lm = qs("#sLocMode"); if(lm) lm.value = loc.mode || "none";
+  const z = qs("#sZip"); if(z) z.value = loc.zip || "";
+  const c = qs("#sCity"); if(c) c.value = loc.city || "";
+
+  const splitCSV = (s)=> String(s||"").split(",").map(x=>x.trim()).filter(Boolean);
+
+  dietEl && dietEl.addEventListener("change", ()=>{ prefs.diet = dietEl.value; saveDB(db); });
+  alEl && alEl.addEventListener("change", ()=>{ prefs.allergies = splitCSV(alEl.value); saveDB(db); });
+  inEl && inEl.addEventListener("change", ()=>{ prefs.intolerances = splitCSV(inEl.value); saveDB(db); });
+  avEl && avEl.addEventListener("change", ()=>{ prefs.avoidFoods = splitCSV(avEl.value); saveDB(db); });
+  lm && lm.addEventListener("change", ()=>{ loc.mode = lm.value; saveDB(db); });
+  z && z.addEventListener("change", ()=>{ loc.zip = z.value.trim(); saveDB(db); });
+  c && c.addEventListener("change", ()=>{ loc.city = c.value.trim(); saveDB(db); });
+
+

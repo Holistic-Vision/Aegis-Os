@@ -1,6 +1,27 @@
 {
   "sections": [
     {
+      "id": "datahub",
+      "title": "Contenus (v0.8)",
+      "items": [
+        {
+          "title": "Recettes (filtrées profil)",
+          "desc": "Recettes complètes, adaptées régime/allergies/intolérances.",
+          "url": "/data/recipes"
+        },
+        {
+          "title": "Séances (filtrées sécurité)",
+          "desc": "Séances maison : renfo, mobilité, HIIT (si autorisé).",
+          "url": "/data/workouts"
+        },
+        {
+          "title": "Courses (MVP comparatif)",
+          "desc": "Panier local + comparaison par saisie prix (sans temps réel).",
+          "url": "/data/groceries"
+        }
+      ]
+    },
+    {
       "id": "privacy",
       "title": "Vie privée & RGPD (références)",
       "desc": "Textes officiels.",
