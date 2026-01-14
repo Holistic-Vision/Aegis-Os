@@ -1,4 +1,4 @@
-let APP_VERSION = "0.7.7";
+let APP_VERSION = "0.7.8";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -126,17 +126,23 @@ async function ensureConsent(){
 }
 
 function bindTopbar(){
-  const db = loadDB();
+  // Important: do NOT capture db once, otherwise theme can only toggle one way.
   qs("#themeBtn")?.addEventListener("click", () => {
-    const next = (db.profile.theme === "dark") ? "light" : "dark";
+    const cur = document.documentElement.getAttribute("data-theme") || loadDB().profile?.theme || "dark";
+    const next = (cur === "dark") ? "light" : "dark";
     setTheme(next);
+    // Optional: reflect icon immediately
+    try{ qs("#themeBtn").textContent = (next === "dark") ? "☼" : "☾"; }catch(e){}
   });
+
   qs("#langBtn")?.addEventListener("click", () => {
+    const db = loadDB();
     const next = (db.profile.lang === "fr") ? "en" : "fr";
     setLang(next);
     location.reload();
   });
 }
+
 
 route("/", async () => {
   if(!(await ensureConsent())) return;
