@@ -1,4 +1,4 @@
-let APP_VERSION = "0.7.5";
+let APP_VERSION = "0.7.6";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";

@@ -22,6 +22,24 @@ function stripBase(pathname){
   if(pathname.startsWith(BASE_PATH + "/")) return pathname.slice(BASE_PATH.length) || "/";
   return pathname;
 }
+
+function normalizeInitialPath(){
+  try{
+    const raw = location.pathname || "/";
+    const normalized = stripBase(raw) || "/";
+    const n = normalized.replace(/\/+$/, "") || "/";
+    if(n === "/" || n === ""){
+      history.replaceState({}, "", withBase("/home"));
+      return "/home";
+    }
+    return n;
+  }catch(e){
+    try{ history.replaceState({}, "", withBase("/home")); }catch(_){}
+    return "/home";
+  }
+}
+
+
 export const routes = new Map();
 
 export function route(path, handler){
@@ -49,7 +67,7 @@ export function onLinkNav(e){
 }
 
 export async function render(){
-  const path = currentPath();
+  const path = normalizeInitialPath();
   const handler = routes.get(path) || routes.get("/404");
   await handler();
   // navbar active
