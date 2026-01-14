@@ -2,7 +2,7 @@ import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
 
-let APP_VERSION = "0.7";
+let APP_VERSION = "0.7.2";
 
 const i18nCache = new Map();
 

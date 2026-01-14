@@ -1,11 +1,36 @@
 export const routes = new Map();
+const BASE_PATH = (() => {
+  try{
+    const host = location.hostname || "";
+    const p = (location.pathname || "/");
+    const seg = p.split("/").filter(Boolean)[0] || "";
+    // GitHub Pages project: https://<org>.github.io/<repo>/
+    if(host.endsWith("github.io") && seg) return "/" + seg;
+  }catch(e){}
+  return "";
+})();
+
+function withBase(path){
+  if(!path) return BASE_PATH || "/";
+  if(BASE_PATH && path.startsWith("/") && !path.startsWith(BASE_PATH + "/") && path !== BASE_PATH){
+    return BASE_PATH + path;
+  }
+  return path;
+}
+
+function stripBase(pathname){
+  if(!BASE_PATH) return pathname;
+  if(pathname === BASE_PATH) return "/";
+  if(pathname.startsWith(BASE_PATH + "/")) return pathname.slice(BASE_PATH.length) || "/";
+  return pathname;
+}
 
 export function route(path, handler){
   routes.set(path, handler);
 }
 
 export function navigate(path){
-  history.pushState({}, "", path);
+  history.pushState({}, "", withBase(path));
   render();
 }
 
