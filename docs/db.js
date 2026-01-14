@@ -1,4 +1,4 @@
-const KEY = "aegis.db.v0_1";
+const KEY = "aegis.db.v0_7";
 
 export function loadDB(){
   try{

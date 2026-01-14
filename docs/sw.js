@@ -1,5 +1,7 @@
-const CACHE = "aegis-v0-1";
+const VERSION = "0.7";
+const CACHE = "aegis-v0_7";
 const ASSETS = [
+  "version.json",
   "./",
   "./index.html",
   "./app.css",
