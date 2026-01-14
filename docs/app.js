@@ -2,7 +2,24 @@ import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
 
-let APP_VERSION = "0.7.2";
+let APP_VERSION = "0.7.3";
+
+
+function showFatal(err){
+  try{
+    const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+    if(typeof window.__AEGIS_SHOW_BOOT_ERROR__ === "function"){
+      window.__AEGIS_SHOW_BOOT_ERROR__("AEGIS - démarrage impossible", msg);
+      return;
+    }
+    const root = document.getElementById("root");
+    if(root){
+      root.innerHTML = '<div class="grid"><div class="card"><h2>AEGIS</h2><div class="badge warn" style="margin-top:6px">Boot error</div><pre class="small" style="white-space:pre-wrap;margin-top:10px"></pre></div></div>';
+      const pre = root.querySelector("pre");
+      if(pre) pre.textContent = msg;
+    }
+  }catch(e){}
+}
 
 const i18nCache = new Map();
 
@@ -1181,4 +1198,4 @@ async function boot(){
   await render();
 }
 
-boot();
+boot().catch(showFatal);

@@ -9,7 +9,43 @@
   <title>AEGIS</title>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div class="grid">
+      <div class="card">
+        <h2>AEGIS</h2>
+        <div class="small">Chargement…</div>
+        <div class="small" style="margin-top:8px">Si l’écran reste vide, un diagnostic s’affichera automatiquement.</div>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var root = document.getElementById("root");
+    function esc(s){ return String(s||"").replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); }
+    function show(title, msg){
+      if(!root) return;
+      root.innerHTML =
+        '<div class="grid"><div class="card">'+
+        '<h2>'+esc(title)+'</h2>'+
+        '<div class="badge warn" style="margin-top:6px">Boot error</div>'+
+        '<div class="small" style="margin-top:10px">'+esc(msg)+'</div>'+
+        '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">'+
+        '<a class="btn primary" href="./?v=0.7.3">Recharger</a>'+
+        '<a class="btn ghost" href="./?v=0.7.3&debug=1">Debug</a>'+
+        '</div>'+
+        '<div class="small" style="margin-top:10px">Astuce : ouvre aussi <code>./version.json</code> pour vérifier la version servie.</div>'+
+        '</div></div>';
+    }
+    window.__AEGIS_SHOW_BOOT_ERROR__ = show;
+    window.addEventListener("error", function(e){
+      show("Erreur JavaScript", (e && e.message) ? e.message : "Erreur inconnue");
+    });
+    window.addEventListener("unhandledrejection", function(e){
+      var r = e && e.reason;
+      show("Erreur Promise", (r && r.message) ? r.message : String(r));
+    });
+  })();
+  </script>
   <script type="module" src="./router.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
