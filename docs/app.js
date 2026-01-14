@@ -1,8 +1,8 @@
-loadVersion();
-let APP_VERSION = "0.7";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
+
+let APP_VERSION = "0.7";
 
 const i18nCache = new Map();
 
@@ -1152,6 +1152,7 @@ function markdownToHtml(md){
 }
 
 async function boot(){
+  await loadVersion();
   await loadI18n();
   const db = loadDB();
   setTheme(db.profile?.theme || "dark");
