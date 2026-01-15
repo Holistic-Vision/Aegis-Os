@@ -1,4 +1,23 @@
 
+
+function installNavDelegation(){
+  const handler = (ev)=>{
+    try{
+      const a = ev.target && ev.target.closest ? ev.target.closest("a[data-nav],button[data-nav]") : null;
+      if(!a) return;
+      const href = a.getAttribute("href") || a.getAttribute("data-href") || "";
+      if(!href) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      go(href);
+    }catch(e){}
+  };
+  document.addEventListener("click", handler, true);
+  document.addEventListener("pointerup", handler, true);
+  document.addEventListener("touchend", handler, true);
+}
+
+
 function purgeSexSpecificFlags(profile){
   profile = profile || {};
   profile.flags = profile.flags || {};
@@ -15,23 +34,7 @@ function purgeSexSpecificFlags(profile){
   return profile;
 }
 
-let APP_VERSION = "0.8.4";
-
-// Error telemetry (local only)
-(function(){
-  const MAX=50;
-  function push(msg){
-    try{
-      const k="aegis_errors";
-      const arr=JSON.parse(sessionStorage.getItem(k)||"[]");
-      arr.push({t:Date.now(), m:String(msg).slice(0,500)});
-      while(arr.length>MAX) arr.shift();
-      sessionStorage.setItem(k, JSON.stringify(arr));
-    }catch(e){}
-  }
-  window.addEventListener("error", (e)=>push(e.message||e.error||"error"));
-  window.addEventListener("unhandledrejection", (e)=>push(e.reason||"unhandledrejection"));
-})();
+let APP_VERSION = "0.8.5";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -1530,14 +1533,7 @@ async function renderWorkouts(){
 
   const data = await fetch("./data/workouts.json").then(r=>r.json()).catch(()=>({items:[]}));
   const items = (data.items||[]).filter(it=>{
-    const tags = new Set((it.tags||[]).map(x=>String(x).toLowerCase()));
-    const contra = new Set((it.contra||it.contraindications||[]).map(x=>String(x).toLowerCase()));
-    // HIIT safety: hide if pregnancy/cardiac
-    if((it.level === "hiit" || tags.has("hiit")) && (flags.pregnant || flags.cardiac)) return false;
-    // Generic contraindications
-    if(flags.pregnant && (contra.has("pregnant") || contra.has("pregnancy"))) return false;
-    if(flags.cardiac && (contra.has("cardiac") || contra.has("heart"))) return false;
-    if(flags.rest && (contra.has("rest") || contra.has("sleep"))) return false;
+    if(it.level === "hiit" && (flags.pregnant || flags.cardiac)) return false;
     return true;
   });
 
@@ -1764,24 +1760,7 @@ async function boot(){
     try{ await navigator.serviceWorker.register("./sw.js"); }catch(e){}
   }
 
-  // Global navigation handler (robust on mobile)
-document.addEventListener("click", onLinkNav, true);
-document.addEventListener("pointerup", onLinkNav, true);
-document.addEventListener("touchend", onLinkNav, {capture:true, passive:false});
-
-// Watchdog: if something removes handlers, re-attach
-(function(){
-  const key="__aegis_nav_bound";
-  function bind(){
-    if(document[key]) return;
-    document[key]=true;
-    document.addEventListener("click", onLinkNav, true);
-    document.addEventListener("pointerup", onLinkNav, true);
-    document.addEventListener("touchend", onLinkNav, {capture:true, passive:false});
-  }
-  bind();
-  setInterval(bind, 3000);
-})();
+  document.addEventListener("click", onLinkNav);
   await render();
 }
 

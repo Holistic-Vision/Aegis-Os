@@ -12,8 +12,7 @@
         "Gainage 3×30s",
         "Étirements 3 min"
       ],
-      "note": "RPE 6/10. Progression : +1 rep / séance.",
-      "contra": []
+      "note": "RPE 6/10. Progression : +1 rep / séance."
     },
     {
       "id": "w2",
@@ -27,8 +26,7 @@
         "Étirement ischios (3 min)",
         "Scan corporel (4 min)"
       ],
-      "note": "Recommandé si grossesse/cardiaque/reprise.",
-      "contra": []
+      "note": "Recommandé si grossesse/cardiaque/reprise."
     },
     {
       "id": "w3",
@@ -40,21 +38,7 @@
         "30s mountain climbers / 30s repos ×4",
         "30s burpees (option) / 30s repos ×2"
       ],
-      "note": "Désactivé si grossesse ou problème cardiaque.",
-      "contra": []
-    },
-    {
-      "id": "hiit_12",
-      "title": "HIIT maison (12 min)",
-      "level": "hard",
-      "tags": [
-        "hiit",
-        "no_equipment"
-      ],
-      "contra": [
-        "pregnant",
-        "cardiac"
-      ]
+      "note": "Désactivé si grossesse ou problème cardiaque."
     }
   ]
 }
