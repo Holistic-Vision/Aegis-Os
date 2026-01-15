@@ -1,80 +1,133 @@
-const BASE_PATH = (() => {
-  try{
-    const host = location.hostname || "";
-    const p = (location.pathname || "/");
-    const seg = p.split("/").filter(Boolean)[0] || "";
-    if(host.endsWith("github.io") && seg) return "/" + seg;
-  }catch(e){}
-  return "";
-})();
+// AEGIS simple SPA router (GitHub Pages compatible)
+// - supports deep links via 404.html -> ?p=...
+// - intercepts internal links and uses History API
+// - provides: route, render, navigate, onLinkNav, qs
 
-function withBase(path){
-  if(!path) return BASE_PATH || "/";
-  if(BASE_PATH && path.startsWith("/") && !path.startsWith(BASE_PATH + "/") && path !== BASE_PATH){
-    return BASE_PATH + path;
+const routes = [];
+let started = false;
+
+export function qs(search = location.search){
+  const out = {};
+  const sp = new URLSearchParams(search.startsWith("?") ? search : ("?"+search));
+  for (const [k,v] of sp.entries()){
+    if (out[k] === undefined) out[k] = v;
+    else if (Array.isArray(out[k])) out[k].push(v);
+    else out[k] = [out[k], v];
   }
-  return path;
+  return out;
 }
 
+function detectBase(){
+  // GitHub Pages project site: /<repo>/
+  const path = location.pathname || "/";
+  const parts = path.split("/").filter(Boolean);
+  // If hosted at domain root (custom domain), base is "/"
+  if (parts.length === 0) return "/";
+  // Heuristic: if index is served under repo folder, keep first segment as base
+  // Example: /Aegis-Os/ or /Aegis-Os/home
+  return "/" + parts[0] + "/";
+}
+
+const BASE = detectBase();
+
 function stripBase(pathname){
-  if(!BASE_PATH) return pathname;
-  if(pathname === BASE_PATH) return "/";
-  if(pathname.startsWith(BASE_PATH + "/")) return pathname.slice(BASE_PATH.length) || "/";
-  return pathname;
+  if (BASE === "/") return pathname || "/";
+  if (pathname.startsWith(BASE)) return "/" + pathname.slice(BASE.length);
+  // also accept without trailing slash in BASE
+  const baseNoTrail = BASE.endsWith("/") ? BASE.slice(0,-1) : BASE;
+  if (pathname.startsWith(baseNoTrail)) return "/" + pathname.slice(baseNoTrail.length);
+  return pathname || "/";
+}
+
+function withBase(path){
+  if (!path.startsWith("/")) path = "/" + path;
+  if (BASE === "/") return path;
+  const baseNoTrail = BASE.endsWith("/") ? BASE.slice(0,-1) : BASE;
+  return baseNoTrail + path;
+}
+
+function parseParams(pattern, path){
+  const pParts = pattern.split("/").filter(Boolean);
+  const aParts = path.split("/").filter(Boolean);
+  if (pParts.length !== aParts.length) return null;
+  const params = {};
+  for (let i=0;i<pParts.length;i++){
+    const pp = pParts[i];
+    const ap = aParts[i];
+    if (pp.startsWith(":")) params[pp.slice(1)] = decodeURIComponent(ap);
+    else if (pp !== ap) return null;
+  }
+  return params;
+}
+
+export function route(pattern, handler){
+  routes.push({ pattern, handler });
 }
 
 function normalizeInitialPath(){
-  try{
-    const raw = location.pathname || "/";
-    const normalized = stripBase(raw) || "/";
-    const n = normalized.replace(/\/+$/, "") || "/";
-    if(n === "/" || n === ""){
-      history.replaceState({}, "", withBase("/"));
-      return "/";
-    }
-    return n;
-  }catch(e){
-    try{ history.replaceState({}, "", withBase("/")); }catch(_){}
-    return "/";
+  // Support deep-link redirect from 404.html: ?p=/home
+  const q = qs();
+  if (q.p){
+    const target = String(q.p);
+    // clean URL: replaceState without query param (keep other params if needed later)
+    history.replaceState({}, "", withBase(target));
+    return target;
   }
-}
-
-
-export const routes = new Map();
-
-export function route(path, handler){
-  routes.set(path, handler);
-}
-
-export function navigate(path){
-  history.pushState({}, "", withBase(path));
-  render();
-}
-
-export function currentPath(){
-  const url = new URL(location.href);
-  return url.pathname.replace(/\/+$/, "") || "/";
-}
-
-export function qs(sel, root=document){ return root.querySelector(sel); }
-export function qsa(sel, root=document){ return [...root.querySelectorAll(sel)]; }
-
-export function onLinkNav(e){
-  const a = e.target.closest("a[data-nav]");
-  if(!a) return;
-  e.preventDefault();
-  navigate(a.getAttribute("href"));
+  return stripBase(location.pathname);
 }
 
 export async function render(){
   const path = normalizeInitialPath();
-  const handler = routes.get(path) || routes.get("/404");
-  await handler();
-  // navbar active
-  qsa(".navitem").forEach(el => {
-    const href = el.getAttribute("href").replace(/\/+$/, "") || "/";
-    el.classList.toggle("active", href === path);
-  });
+  const query = qs();
+  for (const r of routes){
+    const params = parseParams(r.pattern, path);
+    if (params){
+      await r.handler({ path, params, query });
+      return;
+    }
+  }
+  // Not found => redirect to home (SPA)
+  await navigate("/home", true);
 }
 
-window.addEventListener("popstate", render);
+export async function navigate(path, replace=false){
+  // Keep absolute URLs untouched
+  if (!path) return;
+  if (/^https?:\/\//i.test(path)){
+    location.href = path;
+    return;
+  }
+  if (!path.startsWith("/")) path = "/" + path;
+  const url = withBase(path);
+  if (replace) history.replaceState({}, "", url);
+  else history.pushState({}, "", url);
+  await render();
+}
+
+export function onLinkNav(){
+  if (started) return;
+  started = true;
+
+  // Click interception for internal links
+  document.addEventListener("click", (ev)=>{
+    const a = ev.target && ev.target.closest ? ev.target.closest("a") : null;
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (!href || href.startsWith("#")) return;
+    // only same-origin relative links
+    if (href.startsWith("http://") || href.startsWith("https://")) return;
+    // allow opt-out
+    if (a.hasAttribute("data-external")) return;
+    // ignore downloads
+    if (a.hasAttribute("download")) return;
+
+    ev.preventDefault();
+    // Normalize: if href is like "./home" or "home"
+    let p = href;
+    if (p.startsWith(".")) p = p.replace(/^\.+/, "");
+    if (!p.startsWith("/")) p = "/" + p;
+    navigate(p);
+  }, { passive: false });
+
+  window.addEventListener("popstate", ()=>{ render(); });
+}

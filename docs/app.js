@@ -2,6 +2,18 @@ import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
 
+// Runtime version sync (avoids mismatches when SW/CDN serve stale assets)
+async function loadServedVersion(){
+  try{
+    const r = await fetch("./version.json?ts=" + Date.now(), { cache: "no-store" });
+    if(!r.ok) return null;
+    const j = await r.json();
+    if(j && j.version) return j;
+  }catch(e){}
+  return null;
+}
+
+
 
 function installNavDelegation(){
   const handler = (ev)=>{
@@ -1787,5 +1799,4 @@ boot();
   lm && lm.addEventListener("change", ()=>{ loc.mode = lm.value; saveDB(db); });
   z && z.addEventListener("change", ()=>{ loc.zip = z.value.trim(); saveDB(db); });
   c && c.addEventListener("change", ()=>{ loc.city = c.value.trim(); saveDB(db); });
-
 

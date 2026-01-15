@@ -1,7 +1,7 @@
 {
   "name": "AEGIS",
   "short_name": "AEGIS",
-  "start_url": "./?pwa=1",
+  "start_url": "./?v=0.8.7",
   "display": "standalone",
   "background_color": "#05060a",
   "theme_color": "#ff7a1a",
