@@ -1,0 +1,79 @@
+{
+  "title": "Recettes (v0.8)",
+  "items": [
+    {
+      "id": "omelette_proteinee",
+      "title": "Omelette protéinée (rapide)",
+      "tags": [
+        "high-protein",
+        "sans-gluten"
+      ],
+      "allergens": [
+        "oeuf"
+      ],
+      "time_min": 10,
+      "ingredients": [
+        "3 œufs",
+        "30 g fromage (option)",
+        "Épinards",
+        "Sel/poivre",
+        "Huile d’olive (1 c.à.c)"
+      ],
+      "steps": [
+        "Battre les œufs.",
+        "Ajouter épinards.",
+        "Cuire 6–8 min.",
+        "Assaisonner."
+      ],
+      "notes": "Option lactose: retirer fromage."
+    },
+    {
+      "id": "bol_avoine",
+      "title": "Bol avoine/yaourt (petit-déj)",
+      "tags": [
+        "budget",
+        "sans-viande"
+      ],
+      "allergens": [
+        "lactose",
+        "gluten"
+      ],
+      "time_min": 5,
+      "ingredients": [
+        "60 g flocons d’avoine",
+        "150 g yaourt/Skyr",
+        "1 fruit",
+        "Cannelle"
+      ],
+      "steps": [
+        "Mélanger avoine + yaourt.",
+        "Ajouter fruit.",
+        "Épices."
+      ],
+      "notes": "Sans lactose: yaourt soja. Sans gluten: avoine certifiée."
+    },
+    {
+      "id": "poulet_riz_legumes",
+      "title": "Poulet/riz/légumes (batch)",
+      "tags": [
+        "batch",
+        "equilibre"
+      ],
+      "allergens": [],
+      "time_min": 25,
+      "ingredients": [
+        "150 g poulet",
+        "80 g riz",
+        "Légumes surgelés",
+        "Épices"
+      ],
+      "steps": [
+        "Cuire riz.",
+        "Saisir poulet.",
+        "Ajouter légumes 8–10 min.",
+        "Assembler."
+      ],
+      "notes": "Alternative végé: tofu."
+    }
+  ]
+}

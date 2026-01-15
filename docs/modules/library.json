@@ -7,17 +7,20 @@
         {
           "title": "Recettes (filtrées profil)",
           "desc": "Recettes complètes, adaptées régime/allergies/intolérances.",
-          "url": "/data/recipes"
+          "url": "/data/recipes",
+          "label": "Recettes (filtrées profil)"
         },
         {
           "title": "Séances (filtrées sécurité)",
           "desc": "Séances maison : renfo, mobilité, HIIT (si autorisé).",
-          "url": "/data/workouts"
+          "url": "/data/workouts",
+          "label": "Séances (filtrées sécurité)"
         },
         {
           "title": "Courses (MVP comparatif)",
           "desc": "Panier local + comparaison par saisie prix (sans temps réel).",
-          "url": "/data/groceries"
+          "url": "/data/groceries",
+          "label": "Courses (MVP comparatif)"
         }
       ]
     },

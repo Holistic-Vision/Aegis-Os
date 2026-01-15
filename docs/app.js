@@ -1,4 +1,4 @@
-let APP_VERSION = "0.8.0";
+let APP_VERSION = "0.8.1";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -545,6 +545,218 @@ route("/chat", async () => {
   });
 });
 
+
+route("/data/recipes", async () => {
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const prof = db.profile||{};
+  const diet = (prof.diet||"").toLowerCase();
+  const allergies = new Set((prof.allergies||[]).map(x=>String(x).toLowerCase()));
+  const intoler = new Set((prof.intolerances||[]).map(x=>String(x).toLowerCase()));
+  const avoid = new Set((prof.avoid||[]).map(x=>String(x).toLowerCase()));
+
+  const pack = await fetch("./modules/data/recipes.json").then(r=>r.json()).catch(()=>({title:"Recettes",items:[]}));
+  const items = (pack.items||[]).filter(it=>{
+    const a=(it.allergens||[]).map(x=>String(x).toLowerCase());
+    if(a.some(x=>allergies.has(x) || intoler.has(x))) return false;
+    const title=(it.title||"").toLowerCase();
+    if([...avoid].some(w=>w && title.includes(w))) return false;
+    if(diet==="vegan" && (title.includes("poulet")||title.includes("œuf")||title.includes("oeuf"))) return false;
+    if(diet==="vegetarian" && title.includes("poulet")) return false;
+    return true;
+  });
+
+  const html = layout(`
+    <div class="grid">
+      <div class="card">
+        <h2>${escapeHtml(pack.title||"Recettes")}</h2>
+        <div class="small">Filtré par ton profil (régime/allergies/intolérances/évictions).</div>
+        <hr/>
+        ${(items||[]).map(it=>`
+          <div class="card" style="margin:12px 0">
+            <h3>${escapeHtml(it.title)}</h3>
+            <div class="small">⏱ ${escapeHtml(String(it.time_min||""))} min · ${(it.tags||[]).map(t=>`<span class="pill" style="margin-left:6px">${escapeHtml(t)}</span>`).join("")}</div>
+            <hr/>
+            <div class="small"><b>Ingrédients</b></div>
+            <ul class="small">${(it.ingredients||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>
+            <div class="small"><b>Étapes</b></div>
+            <ol class="small">${(it.steps||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ol>
+            ${it.notes?`<div class="small"><b>Notes</b> — ${escapeHtml(it.notes)}</div>`:""}
+          </div>
+        `).join("")}
+        ${items.length===0?`<div class="small">Aucune recette compatible avec ton profil actuel.</div>`:""}
+      </div>
+    </div>
+  `);
+  render(html);
+});
+
+route("/data/workouts", async () => {
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  const flags = db.profile?.flags || {};
+  const pack = await fetch("./modules/data/workouts.json").then(r=>r.json()).catch(()=>({title:"Séances",items:[]}));
+  const safeItems = (pack.items||[]).filter(it=>{
+    const contra = (it.contra||[]).join(" ").toLowerCase();
+    if(flags.pregnant && contra.includes("grossesse:off")) return false;
+    if(flags.heart && contra.includes("cardiaque:off")) return false;
+    return true;
+  });
+
+  const html = layout(`
+    <div class="grid">
+      <div class="card">
+        <h2>${escapeHtml(pack.title||"Séances")}</h2>
+        <div class="small">Masque automatiquement les séances “off” selon tes flags (grossesse / cardiaque).</div>
+        <hr/>
+        ${(safeItems||[]).map(it=>`
+          <div class="card" style="margin:12px 0">
+            <h3>${escapeHtml(it.title)}</h3>
+            <div class="small">Type: ${escapeHtml(it.type||"")} · Niveau: ${escapeHtml(it.level||"")}</div>
+            <hr/>
+            <ul class="small">${(it.blocks||[]).map(b=>`<li>${escapeHtml(b.name)} — ${escapeHtml(b.reps|| (b.duration_s?Math.round(b.duration_s/60)+" min":""))} ${b.details?`(${escapeHtml(b.details)})`:""}</li>`).join("")}</ul>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `);
+  render(html);
+});
+
+route("/data/groceries", async () => {
+  if(!(await ensureConsent())) return;
+  const pack = await fetch("./modules/data/groceries.json").then(r=>r.json()).catch(()=>({title:"Courses",default_stores:[],suggestions:[]}));
+  const db = loadDB();
+  db.groceries = db.groceries || {stores: pack.default_stores||[], items: []};
+  saveDB(db);
+
+  const html = layout(`
+    <div class="grid">
+      <div class="card">
+        <h2>${escapeHtml(pack.title||"Courses")}</h2>
+        <div class="small">${escapeHtml(pack.help||"")}</div>
+        <hr/>
+        <div class="row">
+          <input id="g_item" class="input" placeholder="Ajouter un produit (ex: Œufs)" />
+          <button class="btn" id="g_add">Ajouter</button>
+        </div>
+        <div class="small" style="margin-top:8px">Suggestions: ${(pack.suggestions||[]).map(s=>`<button class="btn ghost" data-sug="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join(" ")}</div>
+        <hr/>
+        <div id="g_table"></div>
+      </div>
+    </div>
+  `);
+  render(html);
+
+  const $=qs;
+  function rerender(){
+    const db=loadDB();
+    const stores=db.groceries.stores||[];
+    const items=db.groceries.items||[];
+    const header = `<tr><th>Produit</th>${stores.map(s=>`<th>${escapeHtml(s.name)}</th>`).join("")}</tr>`;
+    const rows = items.map((it,idx)=>{
+      const cells = stores.map(s=>{
+        const v = (it.prices||{})[s.id] ?? "";
+        return `<td><input class="input" data-p="${idx}:${escapeHtml(s.id)}" value="${escapeHtml(String(v))}" placeholder="€" style="min-width:80px" /></td>`;
+      }).join("");
+      return `<tr><td>${escapeHtml(it.name)}</td>${cells}</tr>`;
+    }).join("");
+    const totals = stores.map(s=>{
+      let sum=0;
+      for(const it of items){
+        const v=parseFloat(((it.prices||{})[s.id]??"").toString().replace(",","."));
+        if(!isNaN(v)) sum+=v;
+      }
+      return `<td><b>${sum.toFixed(2)} €</b></td>`;
+    }).join("");
+    const footer = `<tr><td><b>Total</b></td>${totals}</tr>`;
+    const table = `<div style="overflow:auto"><table class="table">${header}${rows}${footer}</table></div>`;
+    $("#g_table").innerHTML = table;
+
+    document.querySelectorAll("[data-p]").forEach(inp=>{
+      inp.oninput = (e)=>{
+        const [i, sid] = e.target.getAttribute("data-p").split(":");
+        const db=loadDB();
+        const it=db.groceries.items[parseInt(i,10)];
+        it.prices = it.prices || {};
+        it.prices[sid]=e.target.value;
+        saveDB(db);
+        rerender();
+      };
+    });
+  }
+
+  qs("#g_add").onclick=()=>{
+    const name=qs("#g_item").value.trim();
+    if(!name) return;
+    const db=loadDB();
+    db.groceries.items.push({name, prices:{}});
+    saveDB(db);
+    qs("#g_item").value="";
+    rerender();
+  };
+
+  document.querySelectorAll("[data-sug]").forEach(b=>{
+    b.onclick=()=>{
+      qs("#g_item").value=b.getAttribute("data-sug");
+      qs("#g_add").click();
+    };
+  });
+
+  rerender();
+});
+
+route("/profile", async () => {
+  if(!(await ensureConsent())) return;
+  const db = loadDB();
+  db.profile = db.profile || {};
+  db.profile.allergies = db.profile.allergies || [];
+  db.profile.intolerances = db.profile.intolerances || [];
+  db.profile.avoid = db.profile.avoid || [];
+
+  const diets = ["","omnivore","vegetarian","vegan","pescatarian","keto","lowcarb","mediterranean"];
+  const html = layout(`
+    <div class="grid">
+      <div class="card">
+        <h2>Profil alimentation</h2>
+        <div class="small">Utilisé pour filtrer les recettes et recommandations.</div>
+        <hr/>
+        <div class="small"><b>Régime</b></div>
+        <select id="diet" class="input">
+          ${diets.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d||"—")}</option>`).join("")}
+        </select>
+        <div class="small" style="margin-top:10px"><b>Allergies (mots-clés)</b></div>
+        <input id="allergies" class="input" placeholder="ex: oeuf, arachide" />
+        <div class="small" style="margin-top:10px"><b>Intolérances</b></div>
+        <input id="intoler" class="input" placeholder="ex: lactose, gluten" />
+        <div class="small" style="margin-top:10px"><b>À éviter (mots)</b></div>
+        <input id="avoid" class="input" placeholder="ex: poisson, porc" />
+        <hr/>
+        <button class="btn" id="saveProf">Enregistrer</button>
+        <div class="small" style="margin-top:8px">Après sauvegarde, va dans Bibliothèque → Contenus (v0.8) pour voir Recettes/Séances/Courses.</div>
+      </div>
+    </div>
+  `);
+  render(html);
+
+  const db2=loadDB();
+  qs("#diet").value = db2.profile.diet||"";
+  qs("#allergies").value = (db2.profile.allergies||[]).join(", ");
+  qs("#intoler").value = (db2.profile.intolerances||[]).join(", ");
+  qs("#avoid").value = (db2.profile.avoid||[]).join(", ");
+
+  qs("#saveProf").onclick=()=>{
+    const db=loadDB();
+    db.profile=db.profile||{};
+    db.profile.diet = qs("#diet").value;
+    db.profile.allergies = qs("#allergies").value.split(",").map(s=>s.trim()).filter(Boolean);
+    db.profile.intolerances = qs("#intoler").value.split(",").map(s=>s.trim()).filter(Boolean);
+    db.profile.avoid = qs("#avoid").value.split(",").map(s=>s.trim()).filter(Boolean);
+    saveDB(db);
+    go("/library");
+  };
+});
+
 route("/library", async () => {
   if(!(await ensureConsent())) return;
   const lib = await fetch("./modules/library.json").then(r=>r.json()).catch(()=>({sections:[]}));
@@ -554,7 +766,13 @@ route("/library", async () => {
       <div class="small">${escapeHtml(s.desc||"")}</div>
       <hr />
       <ul class="small">
-        ${(s.items||[]).map(it => `<li><a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.label)}</a></li>`).join("")}
+        ${(s.items||[]).map(it => {
+          const url = it.url || it.href || it.path || "#";
+          const label = it.label || it.title || url;
+          const isInternal = typeof url==="string" && url.startsWith("/");
+          const attrs = isInternal ? 'data-nav' : 'target="_blank" rel="noopener"';
+          return `<li><a ${attrs} href="${escapeHtml(url)}">${escapeHtml(label)}</a>${it.desc?`<div class="small">${escapeHtml(it.desc)}</div>`:""}</li>`;
+        }).join("")}
       </ul>
     </div>
   `).join("");
