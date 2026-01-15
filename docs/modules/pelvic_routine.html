@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../app.css" />
+  <title>Pelvic Routine</title>
+</head>
+<body>
+  <div class="topbar">
+    <div class="row">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Pelvic Routine</h1>
+          <div class="subtitle">AEGIS module</div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <a class="btn ghost" href="../index.html">↩</a>
+      </div>
+    </div>
+  </div>
+  <div class="app">
+    <div class="card">
+      <pre class="small" style="white-space:pre-wrap;margin:0" id="md"></pre>
+    </div>
+  </div>
+  <script>
+    fetch("./pelvic_routine.md").then(r=>r.text()).then(t=>document.getElementById("md").textContent=t);
+  </script>
+</body>
+</html>

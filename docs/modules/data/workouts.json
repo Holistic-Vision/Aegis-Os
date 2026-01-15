@@ -1,0 +1,77 @@
+{
+  "title": "Séances maison (v0.8)",
+  "items": [
+    {
+      "id": "mobility_10",
+      "title": "Mobilité 10 min",
+      "type": "mobilite",
+      "level": "tous",
+      "contra": [
+        "aucun"
+      ],
+      "blocks": [
+        {
+          "name": "Cercle épaules",
+          "duration_s": 60
+        },
+        {
+          "name": "Ouverture hanches",
+          "duration_s": 120
+        },
+        {
+          "name": "Chat-vache",
+          "duration_s": 120
+        },
+        {
+          "name": "Fentes dynamiques",
+          "duration_s": 180
+        }
+      ]
+    },
+    {
+      "id": "renfo_20",
+      "title": "Renforcement 20 min (full body)",
+      "type": "renfo",
+      "level": "debutant+",
+      "contra": [
+        "cardiaque:adapt",
+        "grossesse:adapt"
+      ],
+      "blocks": [
+        {
+          "name": "Squats",
+          "reps": "3x10"
+        },
+        {
+          "name": "Pompes inclinées",
+          "reps": "3x8"
+        },
+        {
+          "name": "Row serviette",
+          "reps": "3x10"
+        },
+        {
+          "name": "Gainage",
+          "reps": "3x30s"
+        }
+      ]
+    },
+    {
+      "id": "hiit_12",
+      "title": "HIIT 12 min (si autorisé)",
+      "type": "hiit",
+      "level": "intermediaire",
+      "contra": [
+        "cardiaque:off",
+        "grossesse:off"
+      ],
+      "blocks": [
+        {
+          "name": "30/30 x10",
+          "details": "30s effort / 30s repos",
+          "duration_s": 720
+        }
+      ]
+    }
+  ]
+}
