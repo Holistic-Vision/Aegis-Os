@@ -14,13 +14,13 @@
           "title": "Séances (filtrées sécurité)",
           "desc": "Séances maison : renfo, mobilité, HIIT (si autorisé).",
           "url": "/data/workouts",
-          "label": "Séances (filtrées sécurité)"
+          "label": "Séances (Sport)"
         },
         {
           "title": "Courses (MVP comparatif)",
           "desc": "Panier local + comparaison par saisie prix (sans temps réel).",
           "url": "/data/groceries",
-          "label": "Courses (MVP comparatif)"
+          "label": "Courses (MVP)"
         }
       ]
     },

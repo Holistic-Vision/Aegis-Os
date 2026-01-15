@@ -1,4 +1,21 @@
-let APP_VERSION = "0.8.1";
+
+function purgeSexSpecificFlags(profile){
+  profile = profile || {};
+  profile.flags = profile.flags || {};
+  const sex = (profile.sex||"").toLowerCase();
+
+  if(sex !== "female"){
+    delete profile.flags.pregnant;
+    delete profile.flags.menopause;
+    delete profile.flags.postpartum;
+  }
+  if(sex !== "male"){
+    delete profile.flags.andropause;
+  }
+  return profile;
+}
+
+let APP_VERSION = "0.8.3";
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -706,52 +723,162 @@ route("/data/groceries", async () => {
   rerender();
 });
 
+
 route("/profile", async () => {
   if(!(await ensureConsent())) return;
   const db = loadDB();
-  db.profile = db.profile || {};
+  db.profile = purgeSexSpecificFlags(db.profile || {});
+  db.profile.flags = db.profile.flags || {};
   db.profile.allergies = db.profile.allergies || [];
   db.profile.intolerances = db.profile.intolerances || [];
   db.profile.avoid = db.profile.avoid || [];
+  db.profile.injuries = db.profile.injuries || [];
+  db.profile.preferences = db.profile.preferences || {};
+  db.profile.sleep = db.profile.sleep || {};
 
-  const diets = ["","omnivore","vegetarian","vegan","pescatarian","keto","lowcarb","mediterranean"];
+  const diets = ["","omnivore","vegetarian","vegan","pescatarian","keto","lowcarb","mediterranean","halal","kosher"];
+  const sex = (db.profile.sex||"").toLowerCase();
+
+  const sexBlock = (() => {
+    if(sex==="female"){
+      return `
+        <hr/>
+        <div class="small"><b>Spécifique Femme</b></div>
+        <label class="small"><input type="checkbox" id="f_preg" /> Enceinte</label><br/>
+        <label class="small"><input type="checkbox" id="f_post" /> Post-partum</label><br/>
+        <label class="small"><input type="checkbox" id="f_meno" /> Ménopause / péri-ménopause</label>
+      `;
+    }
+    if(sex==="male"){
+      return `
+        <hr/>
+        <div class="small"><b>Spécifique Homme</b></div>
+        <label class="small"><input type="checkbox" id="f_andro" /> Andropause (repère)</label>
+      `;
+    }
+    return `
+      <hr/>
+      <div class="small"><b>Spécificités</b></div>
+      <div class="small">Définis d’abord le sexe dans Compte pour afficher les options femme/homme.</div>
+    `;
+  })();
+
   const html = layout(`
     <div class="grid">
       <div class="card">
-        <h2>Profil alimentation</h2>
-        <div class="small">Utilisé pour filtrer les recettes et recommandations.</div>
+        <h2>Profil</h2>
+        <div class="small">Filtrage des contenus selon tes choix. Non-médical.</div>
         <hr/>
         <div class="small"><b>Régime</b></div>
         <select id="diet" class="input">
           ${diets.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d||"—")}</option>`).join("")}
         </select>
+
         <div class="small" style="margin-top:10px"><b>Allergies (mots-clés)</b></div>
         <input id="allergies" class="input" placeholder="ex: oeuf, arachide" />
         <div class="small" style="margin-top:10px"><b>Intolérances</b></div>
         <input id="intoler" class="input" placeholder="ex: lactose, gluten" />
-        <div class="small" style="margin-top:10px"><b>À éviter (mots)</b></div>
+        <div class="small" style="margin-top:10px"><b>À éviter</b></div>
         <input id="avoid" class="input" placeholder="ex: poisson, porc" />
+
+        <hr/>
+        <div class="small"><b>Préférences</b></div>
+        <label class="small"><input type="checkbox" id="p_spicy" /> J’aime épicé</label><br/>
+        <label class="small"><input type="checkbox" id="p_fast" /> Recettes rapides (≤20 min)</label><br/>
+        <label class="small"><input type="checkbox" id="p_budget" /> Budget serré</label>
+
+        <div class="small" style="margin-top:10px"><b>Sommeil (repères)</b></div>
+        <div class="row" style="gap:10px">
+          <input id="sleep_start" class="input" placeholder="Heure coucher (ex 23:30)" style="flex:1" />
+          <input id="sleep_end" class="input" placeholder="Heure lever (ex 07:00)" style="flex:1" />
+        </div>
+        <div class="small" style="margin-top:10px"><b>Rythme de travail</b></div>
+        <select id="work_rhythm" class="input">
+          <option value="">—</option>
+          <option value="day">Jour</option>
+          <option value="night">Nuit</option>
+          <option value="mixed">Variable</option>
+        </select>
+
+        <hr/>
+        <div class="small"><b>Prudence (général)</b></div>
+        <label class="small"><input type="checkbox" id="f_heart" /> Cardiaque (prudence)</label><br/>
+        <label class="small"><input type="checkbox" id="f_smoke" /> Fumeur / vape</label><br/>
+        <label class="small"><input type="checkbox" id="f_joint" /> Douleurs articulaires (prudence impact)</label>
+
+        ${sexBlock}
+
+        <hr/>
+        <div class="small"><b>Blessures / inconforts (mots-clés)</b></div>
+        <input id="injuries" class="input" placeholder="ex: épaule, poignet, genou" />
+
+        <div class="small" style="margin-top:10px"><b>Localisation</b></div>
+        <label class="small"><input type="checkbox" id="loc_ok" /> J’accepte l’usage de la localisation (optionnel)</label>
+
         <hr/>
         <button class="btn" id="saveProf">Enregistrer</button>
-        <div class="small" style="margin-top:8px">Après sauvegarde, va dans Bibliothèque → Contenus (v0.8) pour voir Recettes/Séances/Courses.</div>
+        <div class="small" style="margin-top:8px">Ensuite: Bibliothèque → Contenus → Recettes / Séances / Courses.</div>
       </div>
     </div>
   `);
   render(html);
 
-  const db2=loadDB();
-  qs("#diet").value = db2.profile.diet||"";
-  qs("#allergies").value = (db2.profile.allergies||[]).join(", ");
-  qs("#intoler").value = (db2.profile.intolerances||[]).join(", ");
-  qs("#avoid").value = (db2.profile.avoid||[]).join(", ");
+  const p = loadDB().profile || {};
+  qs("#diet").value = p.diet||"";
+  qs("#allergies").value = (p.allergies||[]).join(", ");
+  qs("#intoler").value = (p.intolerances||[]).join(", ");
+  qs("#avoid").value = (p.avoid||[]).join(", ");
+  qs("#injuries").value = (p.injuries||[]).join(", ");
+  qs("#p_spicy").checked = !!(p.preferences||{}).spicy;
+  qs("#p_fast").checked = !!(p.preferences||{}).fast;
+  qs("#p_budget").checked = !!(p.preferences||{}).budget;
+  qs("#sleep_start").value = (p.sleep||{}).start || "";
+  qs("#sleep_end").value = (p.sleep||{}).end || "";
+  qs("#work_rhythm").value = p.workRhythm || "";
+  qs("#f_heart").checked = !!(p.flags||{}).heart;
+  qs("#f_smoke").checked = !!(p.flags||{}).smoker;
+  qs("#f_joint").checked = !!(p.flags||{}).jointPain;
+  qs("#loc_ok").checked = !!p.locConsent;
+
+  const flags = p.flags||{};
+  const elPreg = document.getElementById("f_preg"); if(elPreg) elPreg.checked = !!flags.pregnant;
+  const elPost = document.getElementById("f_post"); if(elPost) elPost.checked = !!flags.postpartum;
+  const elMeno = document.getElementById("f_meno"); if(elMeno) elMeno.checked = !!flags.menopause;
+  const elAndro = document.getElementById("f_andro"); if(elAndro) elAndro.checked = !!flags.andropause;
 
   qs("#saveProf").onclick=()=>{
     const db=loadDB();
     db.profile=db.profile||{};
+    db.profile.flags = db.profile.flags || {};
+    db.profile.preferences = db.profile.preferences || {};
+    db.profile.sleep = db.profile.sleep || {};
+
     db.profile.diet = qs("#diet").value;
     db.profile.allergies = qs("#allergies").value.split(",").map(s=>s.trim()).filter(Boolean);
     db.profile.intolerances = qs("#intoler").value.split(",").map(s=>s.trim()).filter(Boolean);
     db.profile.avoid = qs("#avoid").value.split(",").map(s=>s.trim()).filter(Boolean);
+    db.profile.injuries = qs("#injuries").value.split(",").map(s=>s.trim()).filter(Boolean);
+
+    db.profile.preferences.spicy = qs("#p_spicy").checked;
+    db.profile.preferences.fast = qs("#p_fast").checked;
+    db.profile.preferences.budget = qs("#p_budget").checked;
+
+    db.profile.sleep.start = qs("#sleep_start").value.trim();
+    db.profile.sleep.end = qs("#sleep_end").value.trim();
+    db.profile.workRhythm = qs("#work_rhythm").value;
+
+    db.profile.locConsent = qs("#loc_ok").checked;
+
+    db.profile.flags.heart = qs("#f_heart").checked;
+    db.profile.flags.smoker = qs("#f_smoke").checked;
+    db.profile.flags.jointPain = qs("#f_joint").checked;
+
+    const sp = document.getElementById("f_preg"); if(sp) db.profile.flags.pregnant = sp.checked;
+    const s2 = document.getElementById("f_post"); if(s2) db.profile.flags.postpartum = s2.checked;
+    const s3 = document.getElementById("f_meno"); if(s3) db.profile.flags.menopause = s3.checked;
+    const s4 = document.getElementById("f_andro"); if(s4) db.profile.flags.andropause = s4.checked;
+
+    db.profile = purgeSexSpecificFlags(db.profile);
     saveDB(db);
     go("/library");
   };
@@ -822,137 +949,107 @@ async function moduleHub(title, key){
 }
 
 
+
 route("/account", async () => {
   if(!(await ensureConsent())) return;
   const db = loadDB();
-
-  function genReferral(){
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let s = "AEG-";
-    for(let i=0;i<6;i++) s += chars[Math.floor(Math.random()*chars.length)];
-    return s;
-  }
+  db.profile = purgeSexSpecificFlags(db.profile || {});
+  const p = db.profile;
 
   const html = layout(`
     <div class="grid">
       <div class="card">
-        <h2>${escapeHtml(get("accountTitle"))}</h2>
-        <div class="small">MVP: compte local (pas de serveur). Pour un vrai SaaS: auth + backend.</div>
-        <hr />
-        <label class="small">${escapeHtml(get("email"))}</label>
-        <input class="input" id="email" placeholder="name@email.com" value="${escapeHtml(db.profile.email||"")}" />
-        <div style="height:8px"></div>
-        <label class="small">${escapeHtml(get("referral"))}</label>
-        <input class="input" id="referredBy" placeholder="AEG-XXXXXX" value="${escapeHtml(db.profile.referredBy||"")}" />
-        <div class="small" style="margin-top:8px">${escapeHtml(get("referralExplain"))}</div>
-        <hr />
-        <h3 style="margin:0 0 8px 0">Profil & sécurité</h3>
-        <div class="grid">
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("pregnant"))}</label>
-            <select id="pregnant" class="input">
-              <option value="false">${escapeHtml(get("none"))}</option>
-              <option value="true">Oui</option>
-            </select>
+        <h2>Compte (local)</h2>
+        <div class="small">MVP: pas de serveur. Données stockées sur cet appareil. Tu peux exporter/importer.</div>
+        <hr/>
+        <div class="small"><b>Nom / pseudo</b></div>
+        <input id="acc_name" class="input" placeholder="Ex: Sébastien" />
+        <div class="small" style="margin-top:10px"><b>Email (optionnel)</b></div>
+        <input id="acc_email" class="input" placeholder="ex: moi@mail.com" />
+        <div class="row" style="margin-top:10px; gap:10px">
+          <div style="flex:1">
+            <div class="small"><b>Âge</b></div>
+            <input id="acc_age" class="input" inputmode="numeric" placeholder="ex: 43" />
           </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("menopause"))}</label>
-            <select id="menopause" class="input">
-              <option value="false">${escapeHtml(get("none"))}</option>
-              <option value="true">Oui</option>
-            </select>
-          </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("andropause"))}</label>
-            <select id="andropause" class="input">
-              <option value="false">${escapeHtml(get("none"))}</option>
-              <option value="true">Oui</option>
-            </select>
-          </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("smokerType"))}</label>
-            <select id="smokerType" class="input">
-              <option value="none">${escapeHtml(get("none"))}</option>
-              <option value="cig">${escapeHtml(get("cigarettes"))}</option>
-              <option value="vape">${escapeHtml(get("vape"))}</option>
-              <option value="both">${escapeHtml(get("both"))}</option>
-            </select>
-          </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("smokerPerDay"))}</label>
-            <input class="input" id="smokerPerDay" inputmode="numeric" placeholder="0" />
-          </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("cardiac"))}</label>
-            <select id="cardiac" class="input">
-              <option value="false">${escapeHtml(get("none"))}</option>
-              <option value="true">Oui</option>
-            </select>
-          </div>
-          <div class="card" style="grid-column: span 12; background:transparent; box-shadow:none; border:none; padding:0">
-            <label class="small">${escapeHtml(get("restIssues"))}</label>
-            <select id="restIssues" class="input">
-              <option value="false">${escapeHtml(get("none"))}</option>
-              <option value="true">Oui</option>
+          <div style="flex:1">
+            <div class="small"><b>Sexe</b></div>
+            <select id="acc_sex" class="input">
+              <option value="">—</option>
+              <option value="female">Femme</option>
+              <option value="male">Homme</option>
+              <option value="other">Autre / non précisé</option>
             </select>
           </div>
         </div>
 
-        <hr />
-        <div class="row">
-          <div class="kpi">
-            <div class="small">${escapeHtml(get("myReferral"))}</div>
-            <b id="myRef">${escapeHtml(db.profile.referralCode||"—")}</b>
-            <div class="small" style="margin-top:6px">${escapeHtml(get("referralLink"))}: <span id="myLink">—</span></div>
+        <div class="row" style="margin-top:10px; gap:10px">
+          <div style="flex:1">
+            <div class="small"><b>Taille (cm)</b></div>
+            <input id="acc_height" class="input" inputmode="numeric" placeholder="ex: 180" />
+          </div>
+          <div style="flex:1">
+            <div class="small"><b>Poids (kg)</b></div>
+            <input id="acc_weight" class="input" inputmode="decimal" placeholder="ex: 92" />
           </div>
         </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn primary" id="saveAcc">${escapeHtml(get("createAccount"))}</button>
-          <a class="btn ghost" data-nav href="/support">${escapeHtml(get("navSupport"))}</a>
-        </div>
+
+        <div class="small" style="margin-top:10px"><b>Objectif principal</b></div>
+        <select id="acc_goal" class="input">
+          <option value="">—</option>
+          <option value="fatloss">Perte de graisse</option>
+          <option value="maintenance">Entretien</option>
+          <option value="muscle">Prise de muscle</option>
+          <option value="mobility">Mobilité / posture</option>
+          <option value="sleep">Sommeil / récupération</option>
+          <option value="stress">Stress / esprit</option>
+        </select>
+
+        <div class="small" style="margin-top:10px"><b>Niveau d'activité</b></div>
+        <select id="acc_activity" class="input">
+          <option value="">—</option>
+          <option value="low">Faible</option>
+          <option value="moderate">Modéré</option>
+          <option value="high">Élevé</option>
+        </select>
+
+        <div class="small" style="margin-top:10px"><b>Matériel dispo (optionnel)</b></div>
+        <input id="acc_equipment" class="input" placeholder="ex: tapis, haltères, élastiques" />
+
+        <hr/>
+        <button class="btn" id="acc_save">Enregistrer</button>
+        <div class="small" style="margin-top:8px">Régime / allergies / flags prudence: Profil.</div>
       </div>
     </div>
   `);
-  qs("#root").innerHTML = html;
-  bindTopbar();
+  render(html);
 
-  // init health fields
-  const h = (db.profile.health || {});
-  qs("#pregnant").value = String(!!h.pregnant);
-  qs("#menopause").value = String(!!h.menopause);
-  qs("#andropause").value = String(!!h.andropause);
-  qs("#smokerType").value = h.smokerType || "none";
-  qs("#smokerPerDay").value = String(h.smokerPerDay ?? 0);
-  qs("#cardiac").value = String(!!h.cardiacIssues);
-  qs("#restIssues").value = String(!!h.restIssues);
+  qs("#acc_name").value = p.name || "";
+  qs("#acc_email").value = p.email || "";
+  qs("#acc_age").value = p.age || "";
+  qs("#acc_sex").value = p.sex || "";
+  qs("#acc_height").value = p.heightCm || "";
+  qs("#acc_weight").value = p.weightKg || "";
+  qs("#acc_goal").value = p.goal || "";
+  qs("#acc_activity").value = p.activityLevel || "";
+  qs("#acc_equipment").value = (p.equipment||[]).join(", ");
 
-  function updateLink(){
-    const db3 = loadDB();
-    const code = db3.profile.referralCode;
-    const link = code ? `${location.origin}${location.pathname}?ref=${code}` : "—";
-    qs("#myLink").textContent = link;
-  }
-  updateLink();
+  qs("#acc_save").onclick = () => {
+    const db = loadDB();
+    db.profile = db.profile || {};
+    db.profile.name = qs("#acc_name").value.trim();
+    db.profile.email = qs("#acc_email").value.trim();
+    db.profile.age = qs("#acc_age").value.trim();
+    db.profile.sex = qs("#acc_sex").value;
+    db.profile.heightCm = qs("#acc_height").value.trim();
+    db.profile.weightKg = qs("#acc_weight").value.trim();
+    db.profile.goal = qs("#acc_goal").value;
+    db.profile.activityLevel = qs("#acc_activity").value;
+    db.profile.equipment = qs("#acc_equipment").value.split(",").map(s=>s.trim()).filter(Boolean);
 
-  qs("#saveAcc").addEventListener("click", () => {
-    const db2 = loadDB();
-    db2.profile.email = qs("#email").value.trim();
-    db2.profile.referredBy = qs("#referredBy").value.trim() || null;
-    if(!db2.profile.referralCode) db2.profile.referralCode = genReferral();
-    db2.profile.health = db2.profile.health || {};
-    db2.profile.health.pregnant = (qs("#pregnant").value === "true");
-    db2.profile.health.menopause = (qs("#menopause").value === "true");
-    db2.profile.health.andropause = (qs("#andropause").value === "true");
-    db2.profile.health.smokerType = qs("#smokerType").value;
-    db2.profile.health.smokerPerDay = parseInt(qs("#smokerPerDay").value,10);
-    if(!Number.isFinite(db2.profile.health.smokerPerDay)) db2.profile.health.smokerPerDay = 0;
-    db2.profile.health.cardiacIssues = (qs("#cardiac").value === "true");
-    db2.profile.health.restIssues = (qs("#restIssues").value === "true");
-    saveDB(db2);
-    qs("#myRef").textContent = db2.profile.referralCode;
-    updateLink();
-    alert("Compte local mis à jour.");
-  });
+    db.profile = purgeSexSpecificFlags(db.profile);
+    saveDB(db);
+    go("/settings");
+  };
 });
 
 route("/settings", async () => {
