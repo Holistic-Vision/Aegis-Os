@@ -1,18 +1,18 @@
 // AEGIS Service Worker
 // Cache strategy: network-first for HTML/JS/CSS to avoid stale versions on GitHub Pages.
-const CACHE_NAME = "aegis-0.8.7-20260115T160113Z";
+const CACHE_NAME = "aegis-0.8.8-20260115T182841Z";
 const CORE = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./app.css",
   "./app.js",
   "./router.js",
   "./db.js",
-  "./ui.js",
-  "./i18n.js",
   "./ai.js",
   "./version.json",
-  "./manifest.webmanifest"
+  "./data/recipes.json",
+  "./data/workouts.json",
+  "./data/groceries.json"
 ];
 
 self.addEventListener("install", (event) => {

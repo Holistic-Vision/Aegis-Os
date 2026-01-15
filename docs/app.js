@@ -49,7 +49,7 @@ function purgeSexSpecificFlags(profile){
   return profile;
 }
 
-let APP_VERSION = "0.8.5";
+let APP_VERSION = "0.8.8";
 
 
 
@@ -135,6 +135,38 @@ async function loadVersion(){
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function toast(msg){
+  try{
+    // lightweight toast
+    let el = document.getElementById("toast");
+    if(!el){
+      el = document.createElement("div");
+      el.id = "toast";
+      el.style.position = "fixed";
+      el.style.left = "12px";
+      el.style.right = "12px";
+      el.style.bottom = "84px";
+      el.style.padding = "12px 14px";
+      el.style.borderRadius = "14px";
+      el.style.zIndex = "9999";
+      el.style.backdropFilter = "blur(10px)";
+      el.style.background = "rgba(20,20,24,.72)";
+      el.style.border = "1px solid rgba(255,255,255,.12)";
+      el.style.color = "rgba(255,255,255,.92)";
+      el.style.fontSize = "14px";
+      el.style.opacity = "0";
+      el.style.transition = "opacity .18s ease";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = "1";
+    clearTimeout(window.__toastT);
+    window.__toastT = setTimeout(()=>{ try{ el.style.opacity="0"; }catch(e){} }, 1800);
+  }catch(e){
+    alert(msg);
+  }
 }
 
 async function loadI18n(){
@@ -593,167 +625,6 @@ route("/chat", async () => {
       }
     }
   });
-});
-
-
-route("/data/recipes", async () => {
-  if(!(await ensureConsent())) return;
-  const db = loadDB();
-  const prof = db.profile||{};
-  const diet = (prof.diet||"").toLowerCase();
-  const allergies = new Set((prof.allergies||[]).map(x=>String(x).toLowerCase()));
-  const intoler = new Set((prof.intolerances||[]).map(x=>String(x).toLowerCase()));
-  const avoid = new Set((prof.avoid||[]).map(x=>String(x).toLowerCase()));
-
-  const pack = await fetch("./modules/data/recipes.json").then(r=>r.json()).catch(()=>({title:"Recettes",items:[]}));
-  const items = (pack.items||[]).filter(it=>{
-    const a=(it.allergens||[]).map(x=>String(x).toLowerCase());
-    if(a.some(x=>allergies.has(x) || intoler.has(x))) return false;
-    const title=(it.title||"").toLowerCase();
-    if([...avoid].some(w=>w && title.includes(w))) return false;
-    if(diet==="vegan" && (title.includes("poulet")||title.includes("œuf")||title.includes("oeuf"))) return false;
-    if(diet==="vegetarian" && title.includes("poulet")) return false;
-    return true;
-  });
-
-  const html = layout(`
-    <div class="grid">
-      <div class="card">
-        <h2>${escapeHtml(pack.title||"Recettes")}</h2>
-        <div class="small">Filtré par ton profil (régime/allergies/intolérances/évictions).</div>
-        <hr/>
-        ${(items||[]).map(it=>`
-          <div class="card" style="margin:12px 0">
-            <h3>${escapeHtml(it.title)}</h3>
-            <div class="small">⏱ ${escapeHtml(String(it.time_min||""))} min · ${(it.tags||[]).map(t=>`<span class="pill" style="margin-left:6px">${escapeHtml(t)}</span>`).join("")}</div>
-            <hr/>
-            <div class="small"><b>Ingrédients</b></div>
-            <ul class="small">${(it.ingredients||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>
-            <div class="small"><b>Étapes</b></div>
-            <ol class="small">${(it.steps||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ol>
-            ${it.notes?`<div class="small"><b>Notes</b> — ${escapeHtml(it.notes)}</div>`:""}
-          </div>
-        `).join("")}
-        ${items.length===0?`<div class="small">Aucune recette compatible avec ton profil actuel.</div>`:""}
-      </div>
-    </div>
-  `);
-  render(html);
-});
-
-route("/data/workouts", async () => {
-  if(!(await ensureConsent())) return;
-  const db = loadDB();
-  const flags = db.profile?.flags || {};
-  const pack = await fetch("./modules/data/workouts.json").then(r=>r.json()).catch(()=>({title:"Séances",items:[]}));
-  const safeItems = (pack.items||[]).filter(it=>{
-    const contra = (it.contra||[]).join(" ").toLowerCase();
-    if(flags.pregnant && contra.includes("grossesse:off")) return false;
-    if(flags.heart && contra.includes("cardiaque:off")) return false;
-    return true;
-  });
-
-  const html = layout(`
-    <div class="grid">
-      <div class="card">
-        <h2>${escapeHtml(pack.title||"Séances")}</h2>
-        <div class="small">Masque automatiquement les séances “off” selon tes flags (grossesse / cardiaque).</div>
-        <hr/>
-        ${(safeItems||[]).map(it=>`
-          <div class="card" style="margin:12px 0">
-            <h3>${escapeHtml(it.title)}</h3>
-            <div class="small">Type: ${escapeHtml(it.type||"")} · Niveau: ${escapeHtml(it.level||"")}</div>
-            <hr/>
-            <ul class="small">${(it.blocks||[]).map(b=>`<li>${escapeHtml(b.name)} — ${escapeHtml(b.reps|| (b.duration_s?Math.round(b.duration_s/60)+" min":""))} ${b.details?`(${escapeHtml(b.details)})`:""}</li>`).join("")}</ul>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `);
-  render(html);
-});
-
-route("/data/groceries", async () => {
-  if(!(await ensureConsent())) return;
-  const pack = await fetch("./modules/data/groceries.json").then(r=>r.json()).catch(()=>({title:"Courses",default_stores:[],suggestions:[]}));
-  const db = loadDB();
-  db.groceries = db.groceries || {stores: pack.default_stores||[], items: []};
-  saveDB(db);
-
-  const html = layout(`
-    <div class="grid">
-      <div class="card">
-        <h2>${escapeHtml(pack.title||"Courses")}</h2>
-        <div class="small">${escapeHtml(pack.help||"")}</div>
-        <hr/>
-        <div class="row">
-          <input id="g_item" class="input" placeholder="Ajouter un produit (ex: Œufs)" />
-          <button class="btn" id="g_add">Ajouter</button>
-        </div>
-        <div class="small" style="margin-top:8px">Suggestions: ${(pack.suggestions||[]).map(s=>`<button class="btn ghost" data-sug="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join(" ")}</div>
-        <hr/>
-        <div id="g_table"></div>
-      </div>
-    </div>
-  `);
-  render(html);
-
-  const $=qs;
-  function rerender(){
-    const db=loadDB();
-    const stores=db.groceries.stores||[];
-    const items=db.groceries.items||[];
-    const header = `<tr><th>Produit</th>${stores.map(s=>`<th>${escapeHtml(s.name)}</th>`).join("")}</tr>`;
-    const rows = items.map((it,idx)=>{
-      const cells = stores.map(s=>{
-        const v = (it.prices||{})[s.id] ?? "";
-        return `<td><input class="input" data-p="${idx}:${escapeHtml(s.id)}" value="${escapeHtml(String(v))}" placeholder="€" style="min-width:80px" /></td>`;
-      }).join("");
-      return `<tr><td>${escapeHtml(it.name)}</td>${cells}</tr>`;
-    }).join("");
-    const totals = stores.map(s=>{
-      let sum=0;
-      for(const it of items){
-        const v=parseFloat(((it.prices||{})[s.id]??"").toString().replace(",","."));
-        if(!isNaN(v)) sum+=v;
-      }
-      return `<td><b>${sum.toFixed(2)} €</b></td>`;
-    }).join("");
-    const footer = `<tr><td><b>Total</b></td>${totals}</tr>`;
-    const table = `<div style="overflow:auto"><table class="table">${header}${rows}${footer}</table></div>`;
-    $("#g_table").innerHTML = table;
-
-    document.querySelectorAll("[data-p]").forEach(inp=>{
-      inp.oninput = (e)=>{
-        const [i, sid] = e.target.getAttribute("data-p").split(":");
-        const db=loadDB();
-        const it=db.groceries.items[parseInt(i,10)];
-        it.prices = it.prices || {};
-        it.prices[sid]=e.target.value;
-        saveDB(db);
-        rerender();
-      };
-    });
-  }
-
-  qs("#g_add").onclick=()=>{
-    const name=qs("#g_item").value.trim();
-    if(!name) return;
-    const db=loadDB();
-    db.groceries.items.push({name, prices:{}});
-    saveDB(db);
-    qs("#g_item").value="";
-    rerender();
-  };
-
-  document.querySelectorAll("[data-sug]").forEach(b=>{
-    b.onclick=()=>{
-      qs("#g_item").value=b.getAttribute("data-sug");
-      qs("#g_add").click();
-    };
-  });
-
-  rerender();
 });
 
 
@@ -1592,7 +1463,7 @@ async function renderWorkouts(){
       const id = btn.getAttribute("data-add-workout");
       const it = (data.items||[]).find(x=>String(x.id)===String(id));
       if(!it) return;
-      addTraining({ts: Date.now(), planId: id, done: true, notes: it.title});
+      addJournal({ts: new Date().toISOString(), title: `Séance: ${it.title}`, body: (it.exercises||[]).join('\n'), tags:['seance', String(it.level||'')].filter(Boolean)});
       toast("Séance enregistrée.");
     });
   });
@@ -1753,6 +1624,7 @@ function markdownToHtml(md){
 
 async function boot(){
   await loadI18n();
+  await loadVersion();
   const db = loadDB();
   setTheme(db.profile?.theme || "dark");
 
@@ -1776,27 +1648,9 @@ async function boot(){
     try{ await navigator.serviceWorker.register("./sw.js"); }catch(e){}
   }
 
+  installNavDelegation();
   document.addEventListener("click", onLinkNav);
   await render();
 }
 
 boot();
-  // prefs values
-  const dietEl = qs("#sDiet"); if(dietEl) dietEl.value = prefs.diet || "omnivore";
-  const alEl = qs("#sAllergies"); if(alEl) alEl.value = (prefs.allergies||[]).join(", ");
-  const inEl = qs("#sIntolerances"); if(inEl) inEl.value = (prefs.intolerances||[]).join(", ");
-  const avEl = qs("#sAvoidFoods"); if(avEl) avEl.value = (prefs.avoidFoods||[]).join(", ");
-  const lm = qs("#sLocMode"); if(lm) lm.value = loc.mode || "none";
-  const z = qs("#sZip"); if(z) z.value = loc.zip || "";
-  const c = qs("#sCity"); if(c) c.value = loc.city || "";
-
-  const splitCSV = (s)=> String(s||"").split(",").map(x=>x.trim()).filter(Boolean);
-
-  dietEl && dietEl.addEventListener("change", ()=>{ prefs.diet = dietEl.value; saveDB(db); });
-  alEl && alEl.addEventListener("change", ()=>{ prefs.allergies = splitCSV(alEl.value); saveDB(db); });
-  inEl && inEl.addEventListener("change", ()=>{ prefs.intolerances = splitCSV(inEl.value); saveDB(db); });
-  avEl && avEl.addEventListener("change", ()=>{ prefs.avoidFoods = splitCSV(avEl.value); saveDB(db); });
-  lm && lm.addEventListener("change", ()=>{ loc.mode = lm.value; saveDB(db); });
-  z && z.addEventListener("change", ()=>{ loc.zip = z.value.trim(); saveDB(db); });
-  c && c.addEventListener("change", ()=>{ loc.city = c.value.trim(); saveDB(db); });
-
