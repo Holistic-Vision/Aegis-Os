@@ -1,3 +1,6 @@
+import { route, render, qs, onLinkNav, navigate } from "./router.js";
+import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
+import { chat, setApiKey, clearApiKey } from "./ai.js";
 
 
 function installNavDelegation(){
@@ -9,7 +12,7 @@ function installNavDelegation(){
       if(!href) return;
       ev.preventDefault();
       ev.stopPropagation();
-      go(href);
+      navigate(href);
     }catch(e){}
   };
   document.addEventListener("click", handler, true);
@@ -35,9 +38,8 @@ function purgeSexSpecificFlags(profile){
 }
 
 let APP_VERSION = "0.8.5";
-import { route, render, qs, onLinkNav, navigate } from "./router.js";
-import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
-import { chat, setApiKey, clearApiKey } from "./ai.js";
+
+
 
 const i18nCache = new Map();
 
@@ -1421,6 +1423,8 @@ route("/legal/terms", async () => {
 route("/modules/breath", async () => simpleMarkdownPage("modules/breath.md"));
 route("/modules/meditation", async () => simpleMarkdownPage("modules/meditation.md"));
 route("/modules/values", async () => simpleMarkdownPage("modules/values.md"));
+route("/modules/workouts", async () => simpleMarkdownPage("modules/workouts.md"));
+route("/modules/groceries", async () => simpleMarkdownPage("modules/groceries.md"));
 
 
 // Data Hub (recipes/workouts/groceries)
