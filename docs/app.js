@@ -2,12 +2,6 @@ import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
 
-// prefs bootstrap (must be after imports in ES modules)
-let prefs = (typeof window!=="undefined" && window.prefs) ? window.prefs : null;
-if (typeof window!=="undefined" && !prefs) prefs = (window.prefs = {});
-if (!prefs) prefs = {};
-
-
 // Runtime version sync (avoids mismatches when SW/CDN serve stale assets)
 async function loadServedVersion(){
   try{
