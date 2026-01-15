@@ -50,7 +50,7 @@ function purgeSexSpecificFlags(profile){
   return profile;
 }
 
-let APP_VERSION = "0.8.9";
+let APP_VERSION = "0.9.1";
 
 
 

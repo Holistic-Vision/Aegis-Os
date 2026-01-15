@@ -1,20 +1,35 @@
 // AEGIS simple SPA router (GitHub Pages compatible)
 // - supports deep links via 404.html -> ?p=...
 // - intercepts internal links and uses History API
-// - provides: route, render, navigate, onLinkNav, qs
+// - provides: route, render, navigate, onLinkNav
+// - exports helpers:
+//    - qs(sel, root?) : DOM querySelector helper
+//    - qsp(search?)    : querystring -> object
 
 const routes = [];
 let started = false;
 
-export function qs(search = location.search){
+// DOM helper
+export function qs(sel, root = document){
+  try { return root.querySelector(sel); } catch(e){ return null; }
+}
+
+// Querystring helper (used by router and can be used by modules)
+export function qsp(search = location.search){
   const out = {};
-  const sp = new URLSearchParams(search.startsWith("?") ? search : ("?"+search));
-  for (const [k,v] of sp.entries()){
-    if (out[k] === undefined) out[k] = v;
-    else if (Array.isArray(out[k])) out[k].push(v);
-    else out[k] = [out[k], v];
-  }
+  try {
+    const sp = new URLSearchParams(search.startsWith('?') ? search : ('?' + search));
+    for (const [k, v] of sp.entries()) {
+      if (out[k] === undefined) out[k] = v;
+      else if (Array.isArray(out[k])) out[k].push(v);
+      else out[k] = [out[k], v];
+    }
+  } catch (e) {}
   return out;
+}
+
+export function qsa(sel, root = document){
+  try { return Array.from(root.querySelectorAll(sel)); } catch(e){ return []; }
 }
 
 function detectBase(){
@@ -66,7 +81,7 @@ export function route(pattern, handler){
 
 function normalizeInitialPath(){
   // Support deep-link redirect from 404.html: ?p=/home
-  const q = qs();
+  const q = qsp();
   if (q.p){
     const target = String(q.p);
     // clean URL: replaceState without query param (keep other params if needed later)
@@ -78,7 +93,7 @@ function normalizeInitialPath(){
 
 export async function render(){
   const path = normalizeInitialPath();
-  const query = qs();
+  const query = qsp();
   for (const r of routes){
     const params = parseParams(r.pattern, path);
     if (params){

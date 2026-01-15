@@ -1,6 +1,6 @@
 // AEGIS Service Worker
 // Cache strategy: network-first for HTML/JS/CSS to avoid stale versions on GitHub Pages.
-const CACHE_NAME = "aegis-0.9.0-2026-01-15T21:27:42Z";
+const CACHE_NAME = "aegis-0.9.1-2026-01-15T21:42:10Z";
 const CORE = [
   "./",
   "./index.html",
