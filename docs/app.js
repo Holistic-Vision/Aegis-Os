@@ -1,4 +1,4 @@
-// AEGIS_APP_BUILD 0.9.0
+// AEGIS_APP_BUILD 0.9.4
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -17,20 +17,25 @@ async function loadServedVersion(){
 
 
 function installNavDelegation(){
+  // Important: on mobile, touch events can generate multiple signals (touchend + click).
+  // We only handle BUTTON navigation here; A tags are handled by router.js (onLinkNav).
+  let lastNavAt = 0;
   const handler = (ev)=>{
     try{
-      const a = ev.target && ev.target.closest ? ev.target.closest("a[data-nav],button[data-nav]") : null;
-      if(!a) return;
-      const href = a.getAttribute("href") || a.getAttribute("data-href") || "";
+      const el = ev.target && ev.target.closest ? ev.target.closest("[data-nav]") : null;
+      if(!el) return;
+      if(String(el.tagName||"").toUpperCase() === "A") return; // let onLinkNav handle anchors
+      const href = el.getAttribute("data-nav") || el.getAttribute("data-href") || el.getAttribute("href") || "";
       if(!href) return;
+      const now = Date.now();
+      if(now - lastNavAt < 300) return; // debounce accidental double-fire
+      lastNavAt = now;
       ev.preventDefault();
       ev.stopPropagation();
       navigate(href);
     }catch(e){}
   };
   document.addEventListener("click", handler, true);
-  document.addEventListener("pointerup", handler, true);
-  document.addEventListener("touchend", handler, true);
 }
 
 
@@ -50,7 +55,7 @@ function purgeSexSpecificFlags(profile){
   return profile;
 }
 
-let APP_VERSION = "0.9.2";
+let APP_VERSION = "0.9.4";
 
 
 
@@ -1004,22 +1009,13 @@ route("/settings", async () => {
         </div>
       </div>
 
-      <div class="card" id="accountShortcut">
+      <div class="card" id="accountCard">
         <h2>Compte</h2>
         <div class="small">Profil local : sexe, age, objectifs, contraintes (allergies/intolerances), preferences. Certaines options s'affichent selon le sexe.</div>
         <hr />
         <div class="row">
           <a class="btn" href="/account">Ouvrir mon compte</a>
           <button class="btn ghost" id="resetConsent">Revoir l'avertissement</button>
-        </div>
-      </div>
-
-      <div class="card" id="accountShortcut">
-        <h2>Compte</h2>
-        <div class="small">Profil local : sexe, age, objectifs, contraintes (allergies/intolerances), preferences. Certaines options s'affichent selon le sexe.</div>
-        <hr />
-        <div class="row">
-          <a class="btn" href="/account">Ouvrir mon compte</a>
         </div>
       </div>
 
