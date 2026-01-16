@@ -1,0 +1,70 @@
+{
+  "title": "Courses (MVP)",
+  "updated": "2026-01-15T13:18:16Z",
+  "items": [
+    {
+      "id": "panier-base",
+      "name": "Panier de base (7 jours)",
+      "diet": [
+        "omnivore"
+      ],
+      "allergens": [
+        "gluten?",
+        "lactose?"
+      ],
+      "list": [
+        {
+          "cat": "Protéines",
+          "items": [
+            "œufs",
+            "poulet/dinde",
+            "lentilles/pois chiches",
+            "yaourt/skyr (option)"
+          ]
+        },
+        {
+          "cat": "Féculents",
+          "items": [
+            "riz",
+            "pâtes complètes",
+            "flocons d’avoine",
+            "pommes de terre"
+          ]
+        },
+        {
+          "cat": "Légumes",
+          "items": [
+            "surgelés mélange",
+            "salade",
+            "oignons",
+            "tomates"
+          ]
+        },
+        {
+          "cat": "Fruits",
+          "items": [
+            "bananes",
+            "pommes",
+            "agrumes"
+          ]
+        },
+        {
+          "cat": "Divers",
+          "items": [
+            "huile d’olive",
+            "épices",
+            "sel iodé",
+            "moutarde"
+          ]
+        }
+      ],
+      "notes": "Adapter selon allergies/intolérances. Comparatif magasins en temps réel nécessite une API externe (non disponible sur GitHub Pages)."
+    }
+  ],
+  "sources": [
+    {
+      "label": "Open Food Facts (base de produits)",
+      "url": "https://world.openfoodfacts.org/"
+    }
+  ]
+}

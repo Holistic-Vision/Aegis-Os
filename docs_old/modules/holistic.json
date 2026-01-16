@@ -1,0 +1,32 @@
+{
+  "cards": [
+    {
+      "title": "Nutrition (MVP)",
+      "desc": "Habitudes, hydratation, routines (sans médical).",
+      "links": [
+        {
+          "href": "/modules/holistic_hydration",
+          "label": "Hydratation"
+        },
+        {
+          "href": "/modules/holistic_sleep",
+          "label": "Sommeil"
+        }
+      ]
+    },
+    {
+      "title": "Pratiques",
+      "desc": "Méditation, respiration, mouvements doux.",
+      "links": [
+        {
+          "href": "/modules/meditation",
+          "label": "Méditation"
+        },
+        {
+          "href": "/modules/breath",
+          "label": "Respiration"
+        }
+      ]
+    }
+  ]
+}

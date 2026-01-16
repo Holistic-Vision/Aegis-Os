@@ -1,0 +1,103 @@
+{
+  "items": [
+    {
+      "id": "r1",
+      "title": "Bol protéiné poulet & riz",
+      "timeMin": 25,
+      "kcal": 650,
+      "proteinG": 45,
+      "diets": [
+        "omnivore"
+      ],
+      "tags": [
+        "poulet",
+        "riz"
+      ],
+      "allergens": [],
+      "intolerances": [
+        "gluten"
+      ],
+      "ingredients": [
+        "200g blanc de poulet",
+        "150g riz cuit",
+        "1 poignée d'épinards",
+        "1 c.à.s huile d'olive",
+        "Épices (paprika, poivre)",
+        "Sel"
+      ],
+      "steps": [
+        "Cuire le riz (ou utiliser cuit).",
+        "Saisir le poulet en dés 6–8 min.",
+        "Ajouter épices, sel, puis les épinards 1 min.",
+        "Assembler bol : riz + poulet + épinards, ajouter huile."
+      ],
+      "note": "Variante : remplacer riz par quinoa."
+    },
+    {
+      "id": "r2",
+      "title": "Omelette légumes + fromage (option)",
+      "timeMin": 12,
+      "kcal": 420,
+      "proteinG": 28,
+      "diets": [
+        "omnivore",
+        "vegetarian"
+      ],
+      "tags": [
+        "oeufs"
+      ],
+      "allergens": [
+        "oeufs",
+        "lait"
+      ],
+      "intolerances": [
+        "lactose"
+      ],
+      "ingredients": [
+        "3 oeufs",
+        "1 tomate",
+        "1/2 oignon",
+        "Herbes",
+        "(Option) 30g fromage"
+      ],
+      "steps": [
+        "Battre les oeufs.",
+        "Poêler oignon + tomate 3–4 min.",
+        "Verser oeufs, cuire 3–4 min.",
+        "Ajouter fromage en fin si souhaité."
+      ],
+      "note": "Sans fromage = compatible intolérance lactose (si bien toléré)."
+    },
+    {
+      "id": "r3",
+      "title": "Salade pois chiches méditerranéenne",
+      "timeMin": 10,
+      "kcal": 520,
+      "proteinG": 22,
+      "diets": [
+        "vegan",
+        "vegetarian"
+      ],
+      "tags": [
+        "pois chiches"
+      ],
+      "allergens": [],
+      "intolerances": [],
+      "ingredients": [
+        "200g pois chiches",
+        "Concombre",
+        "Tomates",
+        "Citron",
+        "Huile d'olive",
+        "Sel, cumin"
+      ],
+      "steps": [
+        "Rincer pois chiches.",
+        "Couper légumes.",
+        "Assaisonner citron + huile + cumin.",
+        "Mélanger et servir."
+      ],
+      "note": "Très pratique en batch."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "w1",
+      "title": "Full-body renforcement (débutant)",
+      "durationMin": 20,
+      "level": "strength",
+      "exercises": [
+        "Squats 3×10",
+        "Pompes inclinées 3×8",
+        "Row serviette 3×10",
+        "Gainage 3×30s",
+        "Étirements 3 min"
+      ],
+      "note": "RPE 6/10. Progression : +1 rep / séance."
+    },
+    {
+      "id": "w2",
+      "title": "Mobilité + respiration (sécurité)",
+      "durationMin": 15,
+      "level": "mobility",
+      "exercises": [
+        "Respiration 4-6 (2 min)",
+        "Ouverture hanches (3 min)",
+        "Rotations thoraciques (3 min)",
+        "Étirement ischios (3 min)",
+        "Scan corporel (4 min)"
+      ],
+      "note": "Recommandé si grossesse/cardiaque/reprise."
+    },
+    {
+      "id": "w3",
+      "title": "HIIT court (intermédiaire)",
+      "durationMin": 12,
+      "level": "hiit",
+      "exercises": [
+        "30s jumping jacks / 30s repos ×4",
+        "30s mountain climbers / 30s repos ×4",
+        "30s burpees (option) / 30s repos ×2"
+      ],
+      "note": "Désactivé si grossesse ou problème cardiaque."
+    }
+  ]
+}

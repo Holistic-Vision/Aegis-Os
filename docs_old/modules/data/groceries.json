@@ -1,0 +1,23 @@
+{
+  "title": "Courses (MVP comparatif) v0.9",
+  "help": "Saisie manuelle des prix par magasin (sans backend). Totaux recalculés instantanément.",
+  "default_stores": [
+    {
+      "id": "store_a",
+      "name": "Magasin A"
+    },
+    {
+      "id": "store_b",
+      "name": "Magasin B"
+    }
+  ],
+  "suggestions": [
+    "Œufs",
+    "Flocons d’avoine",
+    "Poulet",
+    "Riz",
+    "Légumes surgelés",
+    "Yaourt/Skyr",
+    "Fruits"
+  ]
+}

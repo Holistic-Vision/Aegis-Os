@@ -1,4 +1,4 @@
-// AEGIS_APP_BUILD 0.9.5
+// AEGIS_APP_BUILD 0.9.4
 import { route, render, qs, onLinkNav, navigate } from "./router.js";
 import { loadDB, saveDB, addCheckin, addJournal, exportDB, importDB, upsertReminder, deleteReminder } from "./db.js";
 import { chat, setApiKey, clearApiKey } from "./ai.js";
@@ -55,7 +55,7 @@ function purgeSexSpecificFlags(profile){
   return profile;
 }
 
-let APP_VERSION = "0.9.5";
+let APP_VERSION = "0.9.4";
 
 
 
@@ -1689,10 +1689,7 @@ async function boot(){
   }
 
   installNavDelegation();
-  // IMPORTANT: do NOT register onLinkNav as a click handler.
-  // It only installs the link interceptor; binding it on click makes the first
-  // navigation happen BEFORE preventDefault(), causing a full page load and UI lock.
-  onLinkNav();
+  document.addEventListener("click", onLinkNav);
   await render();
 }
 
