@@ -225,13 +225,13 @@ async function ensureConsent(){
     </div>
   `);
   document.getElementById("root").innerHTML = html;
-  try{qs("#acceptBtn")?.addEventListener("click", () => {
-    const db2 = loadDB();
-    if(!db2.profile) db2.profile = {};
-    db2.profile.consentAcceptedAt = new Date().toISOString();
-    saveDB(db2);
-    navigate("/");
-  });}catch(e){console.error(e);}
+  qsa("#acceptBtn").forEach(btn => btn.addEventListener("click", () => {
+  const db2 = loadDB();
+  if(!db2.profile) db2.profile = {};
+  db2.profile.consentAcceptedAt = new Date().toISOString();
+  saveDB(db2);
+  navigate("/");
+}));
   return false;
 }
 
