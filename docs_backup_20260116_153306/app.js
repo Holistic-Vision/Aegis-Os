@@ -292,14 +292,14 @@ route("/", async () => {
         <div class="small">Notifications navigateur (limitées sur certains mobiles). Pour un SaaS public, prévoir un backend push.</div>
         <div class="row" style="margin-top:10px">
           <button class="btn" id="notifBtn">${escapeHtml(get("enableNotif"))}</button>
- <a class="btn ghost" data-nav href="/settings#reminders">Gérer</a>
+          <a class="btn ghost" data-nav href="/account">Compte</a> <a class="btn ghost" data-nav href="/settings#reminders">Gérer</a>
         </div>
       </div>
 
       <div class="card footerlinks">
         <a data-nav href="/legal/privacy">Confidentialité</a>
         <a data-nav href="/legal/terms">Conditions</a>
-
+        <a data-nav href="/account">Compte</a>
         <a data-nav href="/support">${escapeHtml(get("navSupport"))}</a>
       </div>
     </div>
@@ -366,14 +366,14 @@ route("/home", async () => {
         <div class="small">Notifications navigateur (limitées sur certains mobiles). Pour un SaaS public, prévoir un backend push.</div>
         <div class="row" style="margin-top:10px">
           <button class="btn" id="notifBtn">${escapeHtml(get("enableNotif"))}</button>
- <a class="btn ghost" data-nav href="/settings#reminders">Gérer</a>
+          <a class="btn ghost" data-nav href="/account">Compte</a> <a class="btn ghost" data-nav href="/settings#reminders">Gérer</a>
         </div>
       </div>
 
       <div class="card footerlinks">
         <a data-nav href="/legal/privacy">Confidentialité</a>
         <a data-nav href="/legal/terms">Conditions</a>
-
+        <a data-nav href="/account">Compte</a>
         <a data-nav href="/support">${escapeHtml(get("navSupport"))}</a>
       </div>
     </div>
@@ -1651,11 +1651,11 @@ function markdownToHtml(md){
   // tiny markdown: headings + lists + paragraphs
   const esc = escapeHtml;
   let out = md.split("\n").map(line => {
-    if(line.startsWith("# ")){ return `<div class="card"><h2>${escapeHtml(line.slice(2))}</h2>`; }
-    if(line.startsWith("## ")){ return `<h3>${escapeHtml(line.slice(3))}</h3>`; }
-    if(line.startsWith("- ")){ return `<li class="small">${escapeHtml(line.slice(2))}</li>`; }
+    if(line.startsWith("# ")){ return `<div class="card"><h2>${esc(line.slice(2))}</h2>`; }
+    if(line.startsWith("## ")){ return `<h3>${esc(line.slice(3))}</h3>`; }
+    if(line.startsWith("- ")){ return `<li class="small">${esc(line.slice(2))}</li>`; }
     if(line.trim()===""){ return ""; }
-    return `<p class="small">${escapeHtml(line)}</p>`;
+    return `<p class="small">${esc(line)}</p>`;
   }).join("\n");
   // wrap lists
   out = out.replace(/(<li[\s\S]*?<\/li>)/g, (m)=>m);

@@ -1,0 +1,81 @@
+{
+  "sections": [
+    {
+      "id": "datahub",
+      "title": "Contenus (v0.9)",
+      "items": [
+        {
+          "title": "Recettes (filtrées profil)",
+          "desc": "Recettes complètes, adaptées régime/allergies/intolérances.",
+          "url": "/data/recipes",
+          "label": "Recettes (filtrées profil)"
+        },
+        {
+          "title": "Séances (filtrées sécurité)",
+          "desc": "Séances maison : renfo, mobilité, HIIT (si autorisé).",
+          "url": "/data/workouts",
+          "label": "Séances (Sport)"
+        },
+        {
+          "title": "Courses (MVP comparatif)",
+          "desc": "Panier local + comparaison par saisie prix (sans temps réel).",
+          "url": "/data/groceries",
+          "label": "Courses (MVP)"
+        }
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": "Vie privée & RGPD (références)",
+      "desc": "Textes officiels.",
+      "items": [
+        {
+          "label": "CNIL — RGPD (présentation)",
+          "url": "https://www.cnil.fr/fr/reglement-europeen-protection-donnees"
+        },
+        {
+          "label": "CNIL — Principes du RGPD",
+          "url": "https://www.cnil.fr/fr/comprendre-le-rgpd/les-six-grands-principes-du-rgpd"
+        },
+        {
+          "label": "EDPB — Article 9 (données sensibles)",
+          "url": "https://www.edpb.europa.eu/gdpr-articles/article-9-processing-special-categories-personal-data_en"
+        }
+      ]
+    },
+    {
+      "id": "media",
+      "title": "Images / vidéos libres",
+      "desc": "Banques d’images et licences.",
+      "items": [
+        {
+          "label": "Unsplash License",
+          "url": "https://unsplash.com/license"
+        },
+        {
+          "label": "Pexels License",
+          "url": "https://www.pexels.com/license/"
+        },
+        {
+          "label": "Pixabay License",
+          "url": "https://pixabay.com/service/license/"
+        }
+      ]
+    },
+    {
+      "id": "quotes",
+      "title": "Phrases & textes",
+      "desc": "À compléter avec des textes du domaine public (et citations).",
+      "items": [
+        {
+          "label": "Project Gutenberg (domaine public)",
+          "url": "https://www.gutenberg.org/"
+        },
+        {
+          "label": "Wikisource",
+          "url": "https://wikisource.org/"
+        }
+      ]
+    }
+  ]
+}
